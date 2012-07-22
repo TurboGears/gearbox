@@ -1,1 +1,1 @@
-from command import MakePackageCommand
+from .command import MakePackageCommand
