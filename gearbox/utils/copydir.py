@@ -91,7 +91,7 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
             content = pkg_resources.resource_string(source[0], full)
         else:
             f = open(full, 'rb')
-            content = f.read()
+            content = f.read().decode('utf-8')
             f.close()
         if sub_file:
             try:
@@ -106,7 +106,7 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
         already_exists = os.path.exists(dest_full)
         if already_exists:
             f = open(dest_full, 'rb')
-            old_content = f.read()
+            old_content = f.read().decode('utf-8')
             f.close()
             if old_content == content:
                 if verbosity:
@@ -129,7 +129,7 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
                                         dest_full))
         if not simulate:
             f = open(dest_full, 'wb')
-            f.write(content)
+            f.write(content.encode('utf-8'))
             f.close()
 
 class SkipTemplate(Exception):

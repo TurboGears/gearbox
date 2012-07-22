@@ -8,7 +8,7 @@ class TemplateCommand(Command):
     template = GearBoxTemplate()
 
     def get_template_path(self):
-        module = sys.modules[self.__module__]
+        module = sys.modules[self.__class__.__module__]
         module_path = module.__file__
         return os.path.join(os.path.abspath(os.path.dirname(module_path)),  'template')
 
