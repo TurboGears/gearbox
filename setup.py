@@ -11,21 +11,26 @@ version = "0.0.1"
 
 setup(name='gearbox',
       version=version,
-      description="",
+      description="Command line toolkit born as a PasteScript replacement for the TurboGears2 web framework",
       long_description=README,
       classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
       keywords='',
-      author='Unknown',
-      author_email='',
-      url='',
-      license='',
+      author='Alessandro Molina',
+      author_email='alessandro.molina@axant.it',
+      url='https://bitbucket.org/_amol_/gearbox',
+      license='MIT',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
       zip_safe=False,
       install_requires=[
-          # -*- Extra requirements: -*-
+        "cliff",
+        "tempita"
       ],
-      entry_points="""
-      # -*- Entry points: -*-
-      """,
-      )
+      entry_points={
+        'console_scripts': [
+            'gearbox = gearbox.main:main'
+            ],
+        'gearbox.commands': [
+            'makepackage = gearbox.commands.basic_package:MakePackageCommand'
+            ],
+      })

@@ -1,0 +1,9 @@
+[metadata]
+name = {{package}}
+version = {{version}}
+author = {{author}}
+author-email = {{author_email}}
+summary = {{description}}
+description-file = README.rst
+#home-page = http://www.{{package}}.org
+#requires-dist = 

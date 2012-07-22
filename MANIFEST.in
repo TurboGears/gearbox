@@ -1,2 +1,2 @@
 global-exclude *.pyc
-
+recursive-include gearbox/commands/*/template *

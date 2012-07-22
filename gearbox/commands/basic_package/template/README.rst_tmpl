@@ -1,0 +1,17 @@
+About {{package}}
+-------------------------
+
+{{package}} is a Python package created using the gearbox makepackage command.
+
+Installing
+-------------------------------
+
+{{package}} can be installed from pypi::
+
+    easy_install {{package}}
+
+or::
+
+    pip install {{package}}
+
+should just work for most of the users
