@@ -31,6 +31,11 @@ setup(name='gearbox',
             'gearbox = gearbox.main:main'
             ],
         'gearbox.commands': [
-            'makepackage = gearbox.commands.basic_package:MakePackageCommand'
+            'makepackage = gearbox.commands.basic_package:MakePackageCommand',
+            'serve = gearbox.commands.serve:ServeCommand'
             ],
+        'paste.server_runner': [
+            'wsgiref = gearbox.commands.serve:wsgiref_server_runner',
+            'cherrypy = gearbox.commands.serve:cherrypy_server_runner'
+            ]
       })
