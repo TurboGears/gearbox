@@ -30,10 +30,10 @@ class GearBox(App):
 
             dist = pkg_resources.get_distribution(package_name)
             for epname, ep in dist.get_entry_map('gearbox.plugins').items():
-                self.load_commands_for_package(ep)
+                self.load_commands_for_package(ep.module_name)
 
-    def load_commands_for_package(self, ep):
-        dist = pkg_resources.get_distribution(ep.module_name)
+    def load_commands_for_package(self, package_name):
+        dist = pkg_resources.get_distribution(package_name)
         for epname, ep in dist.get_entry_map('gearbox.project_commands').items():
             self.command_manager.commands[epname.replace('_', ' ')] = ep
 
