@@ -6,6 +6,29 @@ import os
 import pkg_resources
 import sys
 
+if sys.version_info[0] == 3: # pragma: no cover
+    input_ = input
+    text_type = str
+
+    def native_(s, encoding='latin-1', errors='strict'):
+        """ If ``s`` is an instance of ``text_type``, return
+        ``s``, otherwise return ``str(s, encoding, errors)``"""
+        if isinstance(s, text_type):
+            return s
+        return str(s, encoding, errors)
+else:
+    input_ = raw_input
+    text_type = unicode
+
+    def native_(s, encoding='latin-1', errors='strict'):
+        """ If ``s`` is an instance of ``text_type``, return
+        ``s.encode(encoding, errors)``, otherwise return ``str(s)``"""
+        if isinstance(s, text_type):
+            return s.encode(encoding, errors)
+        return str(s)
+
+fsenc = sys.getfilesystemencoding()
+
 def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
              sub_vars=True, interactive=False, overwrite=True,
              template_renderer=None, out_=sys.stdout):
@@ -91,7 +114,7 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
             content = pkg_resources.resource_string(source[0], full)
         else:
             f = open(full, 'rb')
-            content = f.read().decode('utf-8')
+            content = f.read()
             f.close()
         if sub_file:
             try:
@@ -106,7 +129,7 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
         already_exists = os.path.exists(dest_full)
         if already_exists:
             f = open(dest_full, 'rb')
-            old_content = f.read().decode('utf-8')
+            old_content = f.read()
             f.close()
             if old_content == content:
                 if verbosity:
@@ -129,7 +152,7 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
                                         dest_full))
         if not simulate:
             f = open(dest_full, 'wb')
-            f.write(content.encode('utf-8'))
+            f.write(content)
             f.close()
 
 class SkipTemplate(Exception):
@@ -154,7 +177,7 @@ def substitute_content(content, vars, filename='<string>',
                        template_renderer=None):
     v = standard_vars.copy()
     v.update(vars)
-    return template_renderer(content, v, filename=filename)
+    return template_renderer(content.decode('utf-8'), v, filename=filename).encode('utf-8')
 
 def should_skip_file(name):
     """
