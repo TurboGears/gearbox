@@ -199,7 +199,7 @@ class ServeCommand(Command):
             opts.daemon = True
 
         app_name = opts.app_name
-        vars = self.parse_vars(restvars)
+        parsed_vars = self.parse_vars(restvars)
         if not self._scheme_re.search(app_spec):
             app_spec = 'config:' + app_spec
         server_name = opts.server_name
@@ -266,9 +266,9 @@ class ServeCommand(Command):
             setup_logging(log_fn)
 
         server = self.loadserver(server_spec, name=server_name,
-            relative_to=base, global_conf=vars)
+            relative_to=base, global_conf=parsed_vars)
         app = self.loadapp(app_spec, name=app_name,
-            relative_to=base, global_conf=vars)
+            relative_to=base, global_conf=parsed_vars)
 
         if self.verbose > 0:
             if hasattr(os, 'getpid'):
