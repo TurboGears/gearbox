@@ -21,7 +21,7 @@ import time
 import traceback
 import platform
 
-from gearbox.utils.logging import setup_logging
+from gearbox.utils.log import setup_logging
 from paste.deploy import loadapp, loadserver
 
 from cliff.command import Command
@@ -841,6 +841,18 @@ def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
     server = make_server(host, port, wsgi_app)
     print('Starting HTTP server on http://%s:%s' % (host, port))
     server.serve_forever()
+
+# For paste.deploy server instantiation (egg:gearbox#gevent)
+def gevent_server_runner(wsgi_app, global_config, **kw):
+    from gevent import reinit
+    from gevent.wsgi import WSGIServer
+    from gevent.monkey import patch_all
+    host = kw.get('host', '0.0.0.0')
+    port = int(kw.get('port', 8080))
+    reinit()
+    patch_all(dns=False)
+    print('Starting Gevent HTTP server on http://%s:%s' % (host, port))
+    WSGIServer((host, port), wsgi_app).serve_forever()
 
 # For paste.deploy server instantiation (egg:gearbox#cherrypy)
 def cherrypy_server_runner(
