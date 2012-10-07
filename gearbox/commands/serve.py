@@ -76,11 +76,6 @@ class ServeCommand(Command):
             help=("Save PID to file (default to gearbox.pid if running in "
                   "daemon mode)"))
         parser.add_argument(
-            '--log-file',
-            dest='log_file',
-            metavar='LOG_FILE',
-            help="Save output to the given log file (redirects stdout)")
-        parser.add_argument(
             '--reload',
             dest='reload',
             action='store_true',
@@ -137,8 +132,12 @@ class ServeCommand(Command):
     def get_description(self):
         return 'Serves a web application that uses a PasteDeploy configuration file'
 
-    def out(self, msg): # pragma: no cover
-        print(msg)
+    def out(self, msg, error=False): # pragma: no cover
+        log = logging.getLogger('gearbox')
+        if error:
+            log.error(msg)
+        else:
+            log.info(msg)
 
     def take_action(self, opts):
         if opts.stop_daemon:
@@ -214,17 +213,6 @@ class ServeCommand(Command):
         if getattr(opts, 'daemon', False):
             if not opts.pid_file:
                 opts.pid_file = 'gearbox.pid'
-            if not opts.log_file:
-                opts.log_file = 'gearbox.log'
-
-        # Ensure the log file is writeable
-        if opts.log_file:
-            try:
-                writeable_log_file = open(opts.log_file, 'a')
-            except IOError as ioe:
-                msg = 'Error: Unable to write to log file: %s' % ioe
-                raise ValueError(msg)
-            writeable_log_file.close()
 
         # Ensure the pid file is writeable
         if opts.pid_file:
@@ -250,25 +238,29 @@ class ServeCommand(Command):
         if opts.pid_file:
             self.record_pid(opts.pid_file)
 
-        if opts.log_file:
-            stdout_log = LazyWriter(opts.log_file, 'a')
-            sys.stdout = stdout_log
-            sys.stderr = stdout_log
-            logging.basicConfig(stream=stdout_log)
-
         log_fn = app_spec
         if log_fn.startswith('config:'):
             log_fn = app_spec[len('config:'):]
         elif log_fn.startswith('egg:'):
             log_fn = None
+
+        if self.app.options.log_file:
+            stdout_log = LazyWriter(self.app.options.log_file, 'a')
+            sys.stdout = stdout_log
+            sys.stderr = stdout_log
+
         if log_fn:
             log_fn = os.path.join(base, log_fn)
             setup_logging(log_fn)
 
-        server = self.loadserver(server_spec, name=server_name,
-            relative_to=base, global_conf=parsed_vars)
-        app = self.loadapp(app_spec, name=app_name,
-            relative_to=base, global_conf=parsed_vars)
+        try:
+            server = self.loadserver(server_spec, name=server_name,
+                                     relative_to=base, global_conf=parsed_vars)
+            app = self.loadapp(app_spec, name=app_name,
+                               relative_to=base, global_conf=parsed_vars)
+        except Exception as e:
+            self.out('Failed to load application or server: %s (--debug to see traceback)' % str(e), error=True)
+            raise
 
         if self.verbose > 0:
             if hasattr(os, 'getpid'):
@@ -287,7 +279,7 @@ class ServeCommand(Command):
                     msg = ' ' + str(e)
                 else:
                     msg = ''
-                self.out('Exiting%s (-v to see traceback)' % msg)
+                self.out('Exiting%s (--debug to see traceback)' % msg)
 
         serve()
 

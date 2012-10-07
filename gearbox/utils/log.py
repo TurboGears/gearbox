@@ -22,10 +22,9 @@ def setup_logging(config_uri, fileConfig=fileConfig,
     parser.read([path])
     if parser.has_section('loggers'):
         config_file = os.path.abspath(path)
-        return fileConfig(
-            config_file,
-            dict(__file__=config_file, here=os.path.dirname(config_file))
-        )
+        return fileConfig(config_file,
+                          dict(__file__=config_file,
+                               here=os.path.dirname(config_file)))
 
 def _getpathsec(config_uri, name):
     if '#' in config_uri:
