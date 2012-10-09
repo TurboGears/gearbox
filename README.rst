@@ -22,7 +22,7 @@ Out of The Box
 ------------------------------
 
 Just by installing gearbox itself your TurboGears project will be able to use gearbox system wide
-commands like ``gearbox serve``, ``gearbox setup-app`` and ``gearbox basic_package`` commands.
+commands like ``gearbox serve``, ``gearbox setup-app`` and ``gearbox makepackage`` commands.
 These commands provide a replacement for the paster serve, paster setup-app and paster create commands.
 
 To have a list of the available commands simply run ``gearbox --help``::
