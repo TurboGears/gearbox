@@ -10,8 +10,6 @@ class GearBox(App):
         super(GearBox, self).__init__(description="TurboGears2 Gearbox toolset", 
                                       version='2.3',
                                       command_manager=CommandManager('gearbox.commands'))
-
-        print('Loading local commands...')
         self._load_commands_for_current_dir()
 
     def _load_commands_for_current_dir(self):

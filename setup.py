@@ -24,7 +24,8 @@ setup(name='gearbox',
       zip_safe=False,
       install_requires=[
         "cliff",
-        "tempita"
+        "tempita",
+        "PasteDeploy"
       ],
       entry_points={
         'console_scripts': [
