@@ -5,5 +5,5 @@ author = {{author}}
 author-email = {{author_email}}
 summary = {{description}}
 description-file = README.rst
-#home-page = http://www.{{package}}.org
+home-page = {{url}}
 #requires-dist = 
