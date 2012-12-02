@@ -25,6 +25,11 @@ Just by installing gearbox itself your TurboGears project will be able to use ge
 commands like ``gearbox serve``, ``gearbox setup-app`` and ``gearbox makepackage`` commands.
 These commands provide a replacement for the paster serve, paster setup-app and paster create commands.
 
+The main difference with the paster command is usually only that gearbox commands explicitly set the
+configuration file using the ``--config`` option instead of accepting it positionally.  By default gearbox
+will always load a configuration file named `development.ini`, this mean you can simply run ``gearbox serve``
+in place of ``paster serve development.ini``
+
 To have a list of the available commands simply run ``gearbox --help``::
 
     $ gearbox --help
@@ -58,7 +63,7 @@ Then it is possible to ask for help for a given command by using ``gearbox help 
                          [--pid-file FILENAME] [--reload]
                          [--reload-interval RELOAD_INTERVAL] [--monitor-restart]
                          [--status] [--user USERNAME] [--group GROUP]
-                         [--stop-daemon]
+                         [--stop-daemon] [-c CONFIG_FILE]
                          [args [args ...]]
 
     Serves a web application that uses a PasteDeploy configuration file
@@ -88,7 +93,9 @@ Then it is possible to ask for help for a given command by using ``gearbox help 
       --group GROUP         Set the group (usually only possible when run as root)
       --stop-daemon         Stop a daemonized server (given a PID file, or default
                             gearbox.pid file)
-
+      -c CONFIG_FILE, --config CONFIG_FILE
+                            application config file to read (default:
+                            development.ini)
 
 
 Development Tools Commands

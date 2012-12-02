@@ -24,7 +24,7 @@ import platform
 from gearbox.utils.log import setup_logging
 from paste.deploy import loadapp, loadserver
 
-from cliff.command import Command
+from gearbox.command import Command
 
 MAXFD = 1024
 
@@ -44,8 +44,20 @@ class DaemonizeException(Exception):
     pass
 
 class ServeCommand(Command):
+    _scheme_re = re.compile(r'^[a-z][a-z]+:', re.I)
+
+    _reloader_environ_key = 'PYTHON_RELOADER_SHOULD_RUN'
+    _monitor_environ_key = 'PASTE_MONITOR_SHOULD_RUN'
+
+    possible_subcommands = ('start', 'stop', 'restart', 'status')
+    verbose = 1
+
     def get_parser(self, prog_name):
         parser = super(ServeCommand, self).get_parser(prog_name)
+
+        parser.add_argument("-c", "--config",
+            help='application config file to read (default: development.ini)',
+            dest='config_file', default="development.ini")
 
         parser.add_argument(
             '-n', '--app-name',
@@ -121,14 +133,6 @@ class ServeCommand(Command):
 
         return parser
 
-    _scheme_re = re.compile(r'^[a-z][a-z]+:', re.I)
-
-    _reloader_environ_key = 'PYTHON_RELOADER_SHOULD_RUN'
-    _monitor_environ_key = 'PASTE_MONITOR_SHOULD_RUN'
-
-    possible_subcommands = ('start', 'stop', 'restart', 'status')
-    verbose = 1
-
     def get_description(self):
         return 'Serves a web application that uses a PasteDeploy configuration file'
 
@@ -148,29 +152,21 @@ class ServeCommand(Command):
             opts.set_user = opts.set_group = None
 
         # @@: Is this the right stage to set the user at?
-        self.change_user_group(
-            opts.set_user, opts.set_group)
+        self.change_user_group(opts.set_user, opts.set_group)
 
-        if not opts.args:
-            self.out('You must give a config file')
-            return 2
-
-        app_spec = opts.args[0]
-        if (len(opts.args) > 1
-            and opts.args[1] in self.possible_subcommands):
-            cmd = opts.args[1]
-            restvars = opts.args[2:]
+        app_spec = opts.config_file
+        if opts.args and opts.args[0] in self.possible_subcommands:
+            cmd = opts.args[0]
+            restvars = opts.args[1:]
         else:
             cmd = None
-            restvars = opts.args[1:]
+            restvars = opts.args[0:]
 
         if opts.reload:
             if os.environ.get(self._reloader_environ_key):
                 if self.verbose > 1:
                     self.out('Running reloading file monitor')
                 install_reloader(int(opts.reload_interval), [app_spec])
-                # if self.requires_config_file:
-                #     watch_file(opts.args[0])
             else:
                 return self.restart_with_reloader()
 

@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import os
 
-from cliff.command import Command
+from gearbox.command import Command
 from paste.deploy import appconfig
 
 class SetupAppCommand(Command):
@@ -12,18 +12,20 @@ class SetupAppCommand(Command):
     def get_parser(self, prog_name):
         parser = super(SetupAppCommand, self).get_parser(prog_name)
 
+        parser.add_argument("-c", "--config",
+            help='application config file to read (default: development.ini)',
+            dest='config_file', default="development.ini")
+
         parser.add_argument('--name',
             action='store',
             dest='section_name',
             default=None,
             help='The name of the section to set up (default: app:main)')
 
-        parser.add_argument('args', nargs='*', default=['development.ini'])
-
         return parser
 
     def take_action(self, opts):
-        config_spec = opts.args[0]
+        config_spec = opts.config_file
         section = opts.section_name
         if section is None:
             if '#' in config_spec:
