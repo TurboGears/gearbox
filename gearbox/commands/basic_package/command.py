@@ -1,8 +1,11 @@
 from __future__ import print_function
 
 from gearbox.command import TemplateCommand
+import re
 
 class MakePackageCommand(TemplateCommand):
+    CLEAN_PACKAGE_NAME_RE = re.compile('[^a-zA-Z0-9_]')
+
     def get_description(self):
         return 'Creates a basic python package'
 
@@ -49,7 +52,7 @@ class MakePackageCommand(TemplateCommand):
 
     def take_action(self, opts):
         if opts.package is None:
-            opts.package = opts.project
+            opts.package = self.CLEAN_PACKAGE_NAME_RE.sub('', opts.project.lower())
 
         if opts.output_dir is None:
             opts.output_dir = opts.project
