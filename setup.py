@@ -7,7 +7,7 @@ try:
 except IOError:
     README = ''
 
-version = "0.0.1"
+version = "0.0.1a"
 
 setup(name='gearbox',
       version=version,
