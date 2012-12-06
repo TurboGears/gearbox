@@ -23,8 +23,9 @@ setup(name='gearbox',
       include_package_data=True,
       zip_safe=False,
       install_requires=[
+        "prettytable",
         "cliff",
-        "tempita",
+        "Tempita",
         "PasteDeploy"
       ],
       entry_points={
