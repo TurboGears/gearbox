@@ -10,7 +10,11 @@ class GearBox(App):
         super(GearBox, self).__init__(description="TurboGears2 Gearbox toolset", 
                                       version='2.3',
                                       command_manager=CommandManager('gearbox.commands'))
-        self._load_commands_for_current_dir()
+
+        try:
+            self._load_commands_for_current_dir()
+        except pkg_resources.DistributionNotFound as e:
+            print('Failed to load project commands, %s' % e, file=sys.stderr)
 
     def _load_commands_for_current_dir(self):
         egg_info_dir = find_egg_info_dir(os.getcwd())
