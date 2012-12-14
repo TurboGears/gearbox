@@ -10,11 +10,11 @@ Installing
 
 gearbox can be installed from pypi::
 
-    easy_install gearbox
+    easy_install gearbox-command
 
 or::
 
-    pip install gearbox
+    pip install gearbox-command
 
 should just work for most of the users
 
