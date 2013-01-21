@@ -151,13 +151,13 @@ the **server:main** section of your *.ini* file to serve your application.
 TurboGears2 projects quickstarted before 2.3 used Paste and so the projects is probably
 configured to use Paste#http as the server. This is not an issue by itself, it will just require
 you to have Paste installed to be able to serve the application, to totally remove the Paste
-dependency simply replace **Paste#http** with **gearbox#wsgiref**.
+dependency simply replace **Paste#http** with **gearbox-command#wsgiref**.
 
 Serving with GEvent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Gearbox cames with builtin support for gevent, so serving an application under Gevent
-is just a matter of using **gearbox#gevent** as your server inside the **server:main** section
+is just a matter of using **gearbox-command#gevent** as your server inside the **server:main** section
 of the configuration file.
 
 The gearbox gevent server will automatically monkeypatch all the python modules apart
