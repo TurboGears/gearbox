@@ -9,7 +9,7 @@ except IOError:
 
 version = "0.0.1a"
 
-setup(name='gearbox-command',
+setup(name='gearbox',
       version=version,
       description="Command line toolkit born as a PasteScript replacement for the TurboGears2 web framework",
       long_description=README,
