@@ -50,7 +50,6 @@ class ServeCommand(Command):
     _monitor_environ_key = 'PASTE_MONITOR_SHOULD_RUN'
 
     possible_subcommands = ('start', 'stop', 'restart', 'status')
-    verbose = 1
 
     def get_parser(self, prog_name):
         parser = super(ServeCommand, self).get_parser(prog_name)
@@ -150,6 +149,8 @@ class ServeCommand(Command):
         if not hasattr(opts, 'set_user'):
             # Windows case:
             opts.set_user = opts.set_group = None
+
+        self.verbose = self.app_args.verbose_level
 
         # @@: Is this the right stage to set the user at?
         self.change_user_group(opts.set_user, opts.set_group)
@@ -275,7 +276,7 @@ class ServeCommand(Command):
                     msg = ' ' + str(e)
                 else:
                     msg = ''
-                self.out('Exiting%s (--debug to see traceback)' % msg)
+                self.out('Exiting%s (-v to see traceback)' % msg)
 
         serve()
 
