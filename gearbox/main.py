@@ -6,6 +6,9 @@ from cliff.commandmanager import CommandManager
 from gearbox.utils.plugins import find_egg_info_dir
 
 class GearBox(App):
+    LOG_DATE_FORMAT = '%H:%M:%S'
+    LOG_GEARBOX_FORMAT = '%(asctime)s,%(msecs)03d %(levelname)-5.5s [%(name)s] %(message)s'
+
     def __init__(self):
         super(GearBox, self).__init__(description="TurboGears2 Gearbox toolset", 
                                       version='2.3',
@@ -23,7 +26,7 @@ class GearBox(App):
         # Set up logging to a file
         if self.options.log_file:
             file_handler = logging.FileHandler(filename=self.options.log_file)
-            formatter = logging.Formatter(self.LOG_FILE_MESSAGE_FORMAT)
+            formatter = logging.Formatter(self.LOG_GEARBOX_FORMAT, datefmt=self.LOG_DATE_FORMAT)
             file_handler.setFormatter(formatter)
             root_logger.addHandler(file_handler)
 
@@ -34,7 +37,7 @@ class GearBox(App):
                          2: logging.DEBUG,
                          }.get(self.options.verbose_level, logging.DEBUG)
         console.setLevel(console_level)
-        formatter = logging.Formatter(self.CONSOLE_MESSAGE_FORMAT)
+        formatter = logging.Formatter(self.LOG_GEARBOX_FORMAT, datefmt=self.LOG_DATE_FORMAT)
         console.setFormatter(formatter)
         root_logger.addHandler(console)
 
