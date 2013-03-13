@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import sys, os, pkg_resources
+import sys, os, pkg_resources, logging
 from cliff.app import App
 from cliff.commandmanager import CommandManager
 from gearbox.utils.plugins import find_egg_info_dir
@@ -15,6 +15,28 @@ class GearBox(App):
             self._load_commands_for_current_dir()
         except pkg_resources.DistributionNotFound as e:
             print('Failed to load project commands, %s' % e, file=sys.stderr)
+
+    def configure_logging(self):
+        root_logger = logging.getLogger('')
+        root_logger.setLevel(logging.INFO)
+
+        # Set up logging to a file
+        if self.options.log_file:
+            file_handler = logging.FileHandler(filename=self.options.log_file)
+            formatter = logging.Formatter(self.LOG_FILE_MESSAGE_FORMAT)
+            file_handler.setFormatter(formatter)
+            root_logger.addHandler(file_handler)
+
+        # Always send higher-level messages to the console via stderr
+        console = logging.StreamHandler(self.stderr)
+        console_level = {0: logging.WARNING,
+                         1: logging.INFO,
+                         2: logging.DEBUG,
+                         }.get(self.options.verbose_level, logging.DEBUG)
+        console.setLevel(console_level)
+        formatter = logging.Formatter(self.CONSOLE_MESSAGE_FORMAT)
+        console.setFormatter(formatter)
+        root_logger.addHandler(console)
 
     def _load_commands_for_current_dir(self):
         egg_info_dir = find_egg_info_dir(os.getcwd())
