@@ -7,7 +7,7 @@ try:
 except IOError:
     README = ''
 
-version = "0.0.1a"
+version = "0.0.2"
 
 setup(name='gearbox',
       version=version,
@@ -21,6 +21,7 @@ setup(name='gearbox',
                    'Programming Language :: Python :: 2.7',
                    'Programming Language :: Python :: 3',
                    'Programming Language :: Python :: 3.2',
+                   'Programming Language :: Python :: 3.3',
                    'Topic :: Internet :: WWW/HTTP :: WSGI',
                    'Topic :: Software Development :: Libraries :: Python Modules'],
       keywords='web framework command-line setup',
