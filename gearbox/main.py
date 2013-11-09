@@ -1,9 +1,10 @@
 from __future__ import print_function
 
-import sys, os, pkg_resources, logging
+import sys, os, pkg_resources, logging, warnings
 from cliff.app import App
 from cliff.commandmanager import CommandManager
 from gearbox.utils.plugins import find_egg_info_dir
+
 
 class GearBox(App):
     LOG_DATE_FORMAT = '%H:%M:%S'
@@ -20,6 +21,10 @@ class GearBox(App):
             print('Failed to load project commands, %s' % e, file=sys.stderr)
 
     def configure_logging(self):
+        if self.options.debug:
+            warnings.simplefilter('default')
+            logging.captureWarnings(True)
+
         root_logger = logging.getLogger('')
         root_logger.setLevel(logging.INFO)
 
