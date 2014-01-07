@@ -49,6 +49,8 @@ setup(name='gearbox',
         'paste.server_runner': [
             'wsgiref = gearbox.commands.serve:wsgiref_server_runner',
             'cherrypy = gearbox.commands.serve:cherrypy_server_runner',
-            'gevent = gearbox.commands.serve:gevent_server_runner'
-            ]
+            ],
+        'paste.server_factory': [
+            'gevent = gearbox.commands.serve:gevent_server_factory',
+        ]
       })

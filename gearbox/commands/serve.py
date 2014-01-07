@@ -832,16 +832,21 @@ def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
     server.serve_forever()
 
 # For paste.deploy server instantiation (egg:gearbox#gevent)
-def gevent_server_runner(wsgi_app, global_config, **kw):
+def gevent_server_factory(global_config, **kw):
     from gevent import reinit
     from gevent.wsgi import WSGIServer
     from gevent.monkey import patch_all
-    host = kw.get('host', '0.0.0.0')
-    port = int(kw.get('port', 8080))
     reinit()
     patch_all(dns=False)
-    print('Starting Gevent HTTP server on http://%s:%s' % (host, port))
-    WSGIServer((host, port), wsgi_app).serve_forever()
+    
+    host = kw.get('host', '0.0.0.0')
+    port = int(kw.get('port', 8080))
+
+    def _gevent_serve(wsgi_app):
+        print('Starting Gevent HTTP server on http://%s:%s' % (host, port))
+        WSGIServer((host, port), wsgi_app).serve_forever()
+
+    return _gevent_serve
 
 # For paste.deploy server instantiation (egg:gearbox#cherrypy)
 def cherrypy_server_runner(
