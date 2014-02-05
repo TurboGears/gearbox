@@ -23,7 +23,10 @@ class GearBox(App):
     def configure_logging(self):
         if self.options.debug:
             warnings.simplefilter('default')
-            logging.captureWarnings(True)
+            try:
+                logging.captureWarnings(True)
+            except AttributeError:
+                pass
 
         root_logger = logging.getLogger('')
         root_logger.setLevel(logging.INFO)
