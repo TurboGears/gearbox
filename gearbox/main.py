@@ -15,6 +15,9 @@ class GearBox(App):
                                       version='2.3',
                                       command_manager=CommandManager('gearbox.commands'))
 
+    def initialize_app(self, args):
+        sys.path.insert(0, os.getcwd())
+
         try:
             self._load_commands_for_current_dir()
         except pkg_resources.DistributionNotFound as e:
@@ -57,7 +60,7 @@ class GearBox(App):
             try:
                 pkg_resources.require(package_name)
             except pkg_resources.DistributionNotFound as e:
-                msg = '%sNot Found%s: %s (did you run python setup.py develop?)'
+                msg = '%sNot Found%s: %s (is it an installed Distribution?)'
                 if str(e) != package_name:
                     raise pkg_resources.DistributionNotFound(msg % (str(e) + ': ', ' for', package_name))
                 else:
