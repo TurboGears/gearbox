@@ -15,10 +15,20 @@ class GearBox(App):
                                       version='2.3',
                                       command_manager=CommandManager('gearbox.commands'))
 
+        self.parser.add_argument(
+            '--relative',
+            default=False,
+            action='store_true',
+            dest='relative_plugins',
+            help='Load plugins and applications also from current path.',
+        )
+
     def initialize_app(self, args):
-        curdir = os.getcwd()
-        sys.path.insert(0, curdir)
-        pkg_resources.working_set.add_entry(curdir)
+        if self.options.relative_plugins:
+            curdir = os.getcwd()
+            sys.path.insert(0, curdir)
+            pkg_resources.working_set.add_entry(curdir)
+
 
         try:
             self._load_commands_for_current_dir()
