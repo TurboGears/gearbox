@@ -16,7 +16,9 @@ class GearBox(App):
                                       command_manager=CommandManager('gearbox.commands'))
 
     def initialize_app(self, args):
-        sys.path.insert(0, os.getcwd())
+        curdir = os.getcwd()
+        sys.path.insert(0, curdir)
+        pkg_resources.working_set.add_entry(curdir)
 
         try:
             self._load_commands_for_current_dir()
