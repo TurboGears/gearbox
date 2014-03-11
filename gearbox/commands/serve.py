@@ -23,6 +23,7 @@ import platform
 
 from gearbox.utils.log import setup_logging
 from paste.deploy import loadapp, loadserver
+from paste.deploy.converters import asbool
 
 from gearbox.command import Command
 
@@ -824,11 +825,22 @@ add_file_callback = Monitor.add_file_callback
 
 # For paste.deploy server instantiation (egg:gearbox#wsgiref)
 def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
-    from wsgiref.simple_server import make_server
+    from wsgiref.simple_server import make_server, WSGIServer
+
     host = kw.get('host', '0.0.0.0')
     port = int(kw.get('port', 8080))
-    server = make_server(host, port, wsgi_app)
-    print('Starting HTTP server on http://%s:%s' % (host, port))
+    threaded = asbool(kw.get('wsgiref.threaded', False))
+
+    if threaded:
+        from SocketServer import ThreadingMixIn
+        class GearboxWSGIServer(ThreadingMixIn, WSGIServer): pass
+        server_type = 'Threaded'
+    else:
+        class GearboxWSGIServer(WSGIServer): pass
+        server_type = 'Standard'
+
+    server = make_server(host, port, wsgi_app, server_class=GearboxWSGIServer)
+    print('Starting %s HTTP server on http://%s:%s' % (server_type, host, port))
     server.serve_forever()
 
 # For paste.deploy server instantiation (egg:gearbox#gevent)
