@@ -3,6 +3,7 @@ from __future__ import print_function
 from gearbox.command import TemplateCommand
 import re
 
+
 class MakePackageCommand(TemplateCommand):
     CLEAN_PACKAGE_NAME_RE = re.compile('[^a-zA-Z0-9_]')
 

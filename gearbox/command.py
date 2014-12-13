@@ -5,12 +5,14 @@ from cliff.command import Command as CliffCommand
 
 from .template import GearBoxTemplate
 
+
 class Command(CliffCommand):
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(description=self.get_description(),
                                          prog=prog_name,
                                          add_help=False)
         return parser
+
 
 class TemplateCommand(Command):
     template = GearBoxTemplate()
