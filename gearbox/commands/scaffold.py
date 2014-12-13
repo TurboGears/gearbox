@@ -12,7 +12,7 @@ class ScaffoldCommand(Command):
 
 Scaffold templates are recursively looked up inside the current path,
 for example TurboGears2 projects can easily create new models, controllers
-and template using something like:\n\n
+and template using something like:
 
     $ gearbox scaffold model controller template something
 
