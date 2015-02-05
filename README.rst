@@ -153,6 +153,10 @@ configured to use Paste#http as the server. This is not an issue by itself, it w
 you to have Paste installed to be able to serve the application, to totally remove the Paste
 dependency simply replace **Paste#http** with **gearbox#wsgiref**.
 
+The **gearbox#wsgiref** also supports an experimental multithreaded version that
+can be enabled by setting the ``wsgiref.threaded = true`` option in your server
+configuration section.
+
 Serving with GEvent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
