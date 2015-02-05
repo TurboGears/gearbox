@@ -53,7 +53,7 @@ To have a list of the available commands simply run ``gearbox --help``::
       serve          Serves a web application that uses a PasteDeploy configuration file
       setup-app      Setup an application, given a config file
       tgshell        Opens an interactive shell with a TurboGears2 app loaded
-
+      scaffold       Creates a new file from a scaffold template
 
 Then it is possible to ask for help for a given command by using ``gearbox help command``::
 
@@ -167,6 +167,30 @@ of the configuration file.
 The gearbox gevent server will automatically monkeypatch all the python modules apart
 from the DNS related functions before loading your application.
 Not much more apart making sure that your code is gevent compatible is required.
+
+Scaffolding
+-----------
+
+Scaffolding is the process of creating a new component of your web application 
+through a template or preset.
+
+The ``gearbox scaffold`` command permits to create new files from scaffolds (file templates)
+which you can place inside your project itself. Scaffold files should be named with
+``.template`` extension and can be used by running::
+
+    $ gearbox scaffold templatename target
+
+This will create a ``target`` file (do not provide the extension, that is specified inside
+the templatename itself) starting from the ``templatename`` scaffold.
+
+A tipical scaffold filename will be named like ``model.py.template`` and will look like::
+
+    class {{target.capitalize()}}(DeclarativeBase):
+        __tablename__ = '{{target.lower()}}s'
+
+        uid = Column(Integer, primary_key=True)
+        data = Column(Unicode(255), nullable=False)
+
 
 Writing new gearbox commands
 ---------------------------------
