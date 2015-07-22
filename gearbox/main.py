@@ -33,7 +33,12 @@ class GearBox(App):
         try:
             self._load_commands_for_current_dir()
         except pkg_resources.DistributionNotFound as e:
-            print('Failed to load project commands, %s' % e, file=sys.stderr)
+            try:
+                error_msg = str(e)
+            except:
+                error_msg = 'Unknown Error'
+
+            print('Failed to load project commands with error "%s", have you installed your project?' % error_msg, file=sys.stderr)
 
     def configure_logging(self):
         if self.options.debug:
