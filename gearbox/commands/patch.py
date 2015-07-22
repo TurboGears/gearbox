@@ -117,9 +117,9 @@ across multiple lines.
             if opts.eval and addition:
                 addition = str(eval(addition, globals()))
 
+            matches = False
             lines = []
             with open(filepath) as f:
-                matches = False
                 for line in f:
                     if not match(line, opts.text):
                         lines.append(line)
