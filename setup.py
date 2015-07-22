@@ -45,7 +45,8 @@ setup(name='gearbox',
             'makepackage = gearbox.commands.basic_package:MakePackageCommand',
             'serve = gearbox.commands.serve:ServeCommand',
             'setup-app = gearbox.commands.setup_app:SetupAppCommand',
-            'scaffold = gearbox.commands.scaffold:ScaffoldCommand'
+            'scaffold = gearbox.commands.scaffold:ScaffoldCommand',
+            'patch = gearbox.commands.patch:PatchCommand'
             ],
         'paste.server_runner': [
             'wsgiref = gearbox.commands.serve:wsgiref_server_runner',

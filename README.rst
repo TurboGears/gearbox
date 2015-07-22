@@ -191,16 +191,34 @@ A tipical scaffold filename will be named like ``model.py.template`` and will lo
         uid = Column(Integer, primary_key=True)
         data = Column(Unicode(255), nullable=False)
 
+Patching
+--------
+
+``patch`` is one of the few builtin commands of Gearbox and is commonly used to
+update code. You can think of it as an easier to used sed command mixed with python.
+
+Here are a few examples, this will replace all xi:include occurrences
+with py:extends in all the template files recursively::
+
+    $ gearbox patch -R '*.html' xi:include -r py:extends
+
+It is also possible to rely on regex and python for more complex
+replacements, like updating the Copyright year in your documentation::
+
+    $ gearbox patch -R '*.rst' -x 'Copyright(\s*)(\d+)' -e -r '"Copyright\\g<1>"+__import__("datetime").datetime.utcnow().strftime("%Y")'
+
+Please refer to ``gearbox help patch`` for available options.
+
 
 Writing new gearbox commands
----------------------------------
+----------------------------
 
 gearbox relies on the Cliff command framework for commands crations. Most of what
 the `Cliff <https://cliff.readthedocs.org/en/latest/>`_ documentation states is perfectly
 valid for gearbox commands, some differences only apply in the case of *Template based commands*.
 
 Template Based Commands
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Writing new gearbox template commands is as simple as creating a **gearbox.command.TemplateCommand** subclass and
 place it inside a *command.py* file in a python package.
