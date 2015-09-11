@@ -13,6 +13,7 @@ class GearBox(App):
     def __init__(self):
         super(GearBox, self).__init__(description="TurboGears2 Gearbox toolset", 
                                       version='2.3',
+                                      deferred_help=True,
                                       command_manager=CommandManager('gearbox.commands'))
 
         self.parser.add_argument(
