@@ -303,25 +303,27 @@ class ServeCommand(Command):
             result[name] = value
         return result
 
-    def quote_first_command_arg(self, arg): # pragma: no cover
+    def get_fixed_argv(self):  # pragma: no cover
+        """Get proper arguments for re-running the command.
+
+        This is primarily for fixing some issues under Windows.
+
+        First, there was a bug in Windows when running an executable
+        located at a path with a space in it. This has become a
+        non-issue with current versions of Python and Windows,
+        so we don't take measures like adding quotes or calling
+        win32api.GetShortPathName() as was necessary in former times.
+
+        Second, depending on whether gearbox was installed as an egg
+        or a wheel under Windows, it is run as a .py or an .exe stub.
+        In the first case, we need to run it through the interpreter.
+        On other operating systems, we can re-run the command as is.
+
         """
-        There's a bug in Windows when running an executable that's
-        located inside a path with a space in it.  This method handles
-        that case, or on non-Windows systems or an executable with no
-        spaces, it just leaves well enough alone.
-        """
-        if (sys.platform != 'win32' or ' ' not in arg):
-            # Problem does not apply:
-            return arg
-        try:
-            import win32api
-        except ImportError:
-            raise ValueError(
-                "The executable %r contains a space, and in order to "
-                "handle this issue you must have the win32api module "
-                "installed" % arg)
-        arg = win32api.GetShortPathName(arg)
-        return arg
+        argv = sys.argv[:]
+        if sys.platform == 'win32' and argv[0].endswith('.py'):
+            argv.insert(0, sys.executable)
+        return argv
 
     def daemonize(self, opts): # pragma: no cover
         pid = live_pidfile(opts.pid_file)
@@ -468,7 +470,7 @@ class ServeCommand(Command):
             else:
                 self.out('Starting subprocess with monitor parent')
         while 1:
-            args = [self.quote_first_command_arg(sys.executable)] + sys.argv
+            args = self.get_fixed_argv()
             new_environ = os.environ.copy()
             if reloader:
                 new_environ[self._reloader_environ_key] = 'true'
