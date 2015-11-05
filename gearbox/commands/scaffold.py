@@ -33,6 +33,10 @@ templates/template.html.template scaffolds of the current project.
         parser.add_argument('target',
                             help='entity for which scaffold is created')
 
+        parser.add_argument('-l', '--lookup',
+                            dest='lookup',
+                            help='Path where to lookup for scaffold templates.')
+
         parser.add_argument('-p', '--path',
                             dest='path',
                             help='Where to place the newly created files, '
@@ -50,20 +54,34 @@ templates/template.html.template scaffolds of the current project.
 
         return parser
 
+    def _lookup(self, template, where):
+        template_filename = None
+        for root, __, files in os.walk(where):
+            for f in files:
+                fname, fext = os.path.splitext(f)
+                if fext == '.template' and os.path.splitext(fname)[0] == template:
+                    template_filename = os.path.join(root, f)
+                    break
+        return template_filename
+
     def take_action(self, opts):
         for template in opts.scaffold_name:
             template_filename = None
+            template_relpath = None
             if template.endswith('.template'):
                 # Template is a path, use it as it is.
                 template_filename = template
+                template_relpath = '.'
             else:
                 # Not a template path, look it up in subfolders
-                for root, __, files in os.walk('.'):
-                    for f in files:
-                        fname, fext = os.path.splitext(f)
-                        if fext == '.template' and os.path.splitext(fname)[0] == template:
-                            template_filename = os.path.join(root, f)
-                            break
+                template_filename = self._lookup(template, '.')
+                if template_filename:
+                    template_relpath = os.path.dirname(template_filename)
+
+                if template_filename is None and opts.lookup:
+                    template_filename = self._lookup(template, opts.lookup)
+                    if template_filename:
+                        template_relpath = os.path.relpath(os.path.dirname(template_filename), opts.lookup)
 
             if not template_filename or not os.path.exists(template_filename):
                 print('Template %s Not Found!' % (template))
@@ -75,7 +93,7 @@ templates/template.html.template scaffolds of the current project.
 
             output_dir = opts.path
             if not output_dir:
-                output_dir = os.path.dirname(template_filename)
+                output_dir = template_relpath
 
             if opts.subdir:
                 output_dir = os.path.join(output_dir, opts.subdir)
