@@ -827,22 +827,71 @@ add_file_callback = Monitor.add_file_callback
 
 # For paste.deploy server instantiation (egg:gearbox#wsgiref)
 def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
+    """
+    Entry point for wsgiref's WSGI server
+
+    Additional parameters:
+
+    ``certfile``, ``keyfile``
+
+        Optional SSL certificate file and host key file names. You can
+        generate self-signed test files as follows:
+
+            $ openssl genrsa 1024 > keyfile
+            $ chmod 400 keyfile
+            $ openssl req -new -x509 -nodes -sha1 -days 365  \\
+                          -key keyfile > certfile
+            $ chmod 400 certfile
+
+        The file names should contain full paths.
+
+    """
     from wsgiref.simple_server import make_server, WSGIServer
 
     host = kw.get('host', '0.0.0.0')
     port = int(kw.get('port', 8080))
     threaded = asbool(kw.get('wsgiref.threaded', False))
 
+    server_class = WSGIServer
+    certfile = kw.get('wsgiref.certfile')
+    keyfile = kw.get('wsgiref.keyfile')
+    scheme = 'http'
+
+    if certfile and keyfile:
+        """
+        based on code from nullege:
+        description='Dropbox REST API Client with more consistent responses.',
+        author='Rick van Hattem',
+        author_email='Rick@Wol.ph',
+        url='http://wol.ph/',
+        """
+        import ssl
+        class SecureWSGIServer(WSGIServer):
+
+            def get_request(self):
+                socket, client_address = WSGIServer.get_request(self)
+                socket = ssl.wrap_socket(socket,
+                                         server_side=True,
+                                         certfile=certfile,
+                                         keyfile=keyfile)
+                return socket, client_address
+
+        port = int(kw.get('port', 4443))
+        server_class = SecureWSGIServer
+
     if threaded:
         from SocketServer import ThreadingMixIn
-        class GearboxWSGIServer(ThreadingMixIn, WSGIServer): pass
+        class GearboxWSGIServer(ThreadingMixIn, server_class): pass
         server_type = 'Threaded'
     else:
-        class GearboxWSGIServer(WSGIServer): pass
+        class GearboxWSGIServer(server_class): pass
         server_type = 'Standard'
 
     server = make_server(host, port, wsgi_app, server_class=GearboxWSGIServer)
-    print('Starting %s HTTP server on http://%s:%s' % (server_type, host, port))
+    if certfile and keyfile:
+        server_type += ' Secure'
+        scheme += 's'
+    print('Starting %s HTTP server on %s://%s:%s' % (server_type, scheme, host, port))
     server.serve_forever()
 
 # For paste.deploy server instantiation (egg:gearbox#gevent)
