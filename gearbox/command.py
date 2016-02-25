@@ -1,17 +1,35 @@
 import argparse
+import inspect
 import os, sys
-
-from cliff.command import Command as CliffCommand
 
 from .template import GearBoxTemplate
 
 
-class Command(CliffCommand):
+class Command(object):
+    deprecated = False
+
+    def __init__(self, app, app_args, cmd_name=None):
+        self.app = app
+        self.app_args = app_args
+        self.cmd_name = cmd_name
+
+    def get_description(self):
+        """Override to provide custom description for command."""
+        return inspect.getdoc(self.__class__) or ''
+
     def get_parser(self, prog_name):
+        """Override to add command options."""
         parser = argparse.ArgumentParser(description=self.get_description(),
-                                         prog=prog_name,
-                                         add_help=False)
+                                         prog=prog_name, add_help=False)
         return parser
+
+    def take_action(self, parsed_args):
+        """Override to do something useful."""
+        raise NotImplementedError
+
+    def _run(self, parsed_args):
+        self.take_action(parsed_args)
+        return 0
 
 
 class TemplateCommand(Command):

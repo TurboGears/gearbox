@@ -1,9 +1,13 @@
 About gearbox
 -------------------------
 
-gearbox is a paster command replacement for TurboGears2.
+Gearbox is a paster command replacement for TurboGears2.
 It has been created during the process of providing Python3 support to the TurboGears2 web framework,
 while still being backward compatible with the existing TurboGears projects.
+
+Gearbox is based on a stripped down version of Cliff command line framework, you might want
+to consider `Cliff <http://docs.openstack.org/developer/cliff/>`_ for more advanced use cases
+and custom command interpreters.
 
 Installing
 -------------------------------
@@ -213,9 +217,23 @@ Please refer to ``gearbox help patch`` for available options.
 Writing new gearbox commands
 ----------------------------
 
-gearbox relies on the Cliff command framework for commands crations. Most of what
-the `Cliff <https://cliff.readthedocs.org/en/latest/>`_ documentation states is perfectly
-valid for gearbox commands, some differences only apply in the case of *Template based commands*.
+Gearbox will automatically load any command registered as a setuptools entry point with
+``gearbox.commands`` key. To create a new command you must subclass the ``gearbox.command.Command``
+class, override the ``get_parser`` and ``take_action`` methods to provide custom options and
+a custom behaviour::
+
+    class MyCcommand(Command):
+        def take_action(self, opts):
+            print('Hello World!')
+
+Then register your command in the setup.py entry points of your package::
+
+    setup(name='mydistribution',
+          entry_points={
+             'gearbox.commands': [
+                 'mycommand = mypackage.commands:MyCommand',
+             ]
+          })
 
 Template Based Commands
 ~~~~~~~~~~~~~~~~~~~~~~~

@@ -256,8 +256,8 @@ class ServeCommand(Command):
                                      relative_to=base, global_conf=parsed_vars)
             app = self.loadapp(app_spec, name=app_name,
                                relative_to=base, global_conf=parsed_vars)
-        except Exception as e:
-            self.out('Failed to load application or server: %s (--debug to see traceback)' % str(e), error=True)
+        except Exception:
+            self.out('Failed to load application or server', error=True)
             raise
 
         if self.verbose > 0:
