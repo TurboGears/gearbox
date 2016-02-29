@@ -166,7 +166,7 @@ class GearBox(object):
             return cmd._run(parsed_args)
         except Exception as err:
             log.exception(err)
-            return 3
+            return 4
 
     def _load_commands_for_current_dir(self):
         egg_info_dir = find_egg_info_dir(os.getcwd())
