@@ -26,6 +26,7 @@ def setup_logging(config_uri, fileConfig=fileConfig,
                           dict(__file__=config_file,
                                here=os.path.dirname(config_file)))
 
+
 def _getpathsec(config_uri, name):
     if '#' in config_uri:
         path, section = config_uri.split('#', 1)
