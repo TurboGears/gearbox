@@ -247,10 +247,6 @@ class ServeCommand(Command):
             sys.stdout = stdout_log
             sys.stderr = stdout_log
 
-        if log_fn:
-            log_fn = os.path.join(base, log_fn)
-            setup_logging(log_fn)
-
         try:
             server = self.loadserver(server_spec, name=server_name,
                                      relative_to=base, global_conf=parsed_vars)
@@ -259,6 +255,10 @@ class ServeCommand(Command):
         except Exception:
             self.out('Failed to load application or server', error=True)
             raise
+
+        if log_fn:
+            log_fn = os.path.join(base, log_fn)
+            setup_logging(log_fn)
 
         if self.verbose > 0:
             if hasattr(os, 'getpid'):
