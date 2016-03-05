@@ -125,8 +125,8 @@ class GearBox(object):
                 except:
                     error_msg = 'Unknown Error'
 
-                print('Failed to load project commands with error '
-                      '"%s", have you installed your project?' % error_msg, file=sys.stderr)
+                log.error('Failed to load project commands with error '
+                          '"%s", have you installed your project?' % error_msg)
 
         except Exception as err:
             if hasattr(self, 'options'):
