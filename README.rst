@@ -5,7 +5,7 @@ Gearbox is a paster command replacement for TurboGears2.
 It has been created during the process of providing Python3 support to the TurboGears2 web framework,
 while still being backward compatible with the existing TurboGears projects.
 
-Gearbox is based on a stripped down version of Cliff command line framework, you might want
+Gearbox is based on a stripped down version of *Cliff* command line framework, you might want
 to consider `Cliff <http://docs.openstack.org/developer/cliff/>`_ for more advanced use cases
 and custom command interpreters.
 
