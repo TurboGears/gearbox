@@ -136,7 +136,6 @@ class GearBox(object):
 
             if debug:
                 log.exception(err)
-                raise
             else:
                 log.error(err)
 
@@ -149,8 +148,9 @@ class GearBox(object):
             subcommand = self.command_manager.find_command(argv)
         except ValueError as err:
             if self.options.debug:
-                raise
-            log.error(err)
+                log.exception(err)
+            else:
+                log.error(err)
             return 2
 
         cmd_factory, cmd_name, sub_argv = subcommand
