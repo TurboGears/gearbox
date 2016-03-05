@@ -122,12 +122,12 @@ class GearBox(object):
                 self._load_commands_for_current_dir()
             except pkg_resources.DistributionNotFound as e:
                 try:
-                    error_msg = str(e)
+                    error_msg = repr(e)
                 except:
                     error_msg = 'Unknown Error'
 
                 log.error('Failed to load project commands with error '
-                          '"%s", have you installed your project?' % error_msg)
+                          '``%s``, have you installed your project?' % error_msg)
 
         except Exception as err:
             if hasattr(self, 'options'):
