@@ -14,7 +14,6 @@ class GearBox(object):
     NAME = os.path.splitext(os.path.basename(sys.argv[0]))[0]
     LOG_DATE_FORMAT = '%H:%M:%S'
     LOG_GEARBOX_FORMAT = '%(asctime)s,%(msecs)03d %(levelname)-5.5s [%(name)s] %(message)s'
-    VERSION = "2.3"
     DEFAULT_VERBOSE_LEVEL = 1
 
     def __init__(self):
@@ -27,7 +26,9 @@ class GearBox(object):
         parser.add_argument(
             '--version',
             action='version',
-            version='%(prog)s {0}'.format(self.VERSION),
+            version='%(prog)s {0}'.format(
+                pkg_resources.get_distribution("gearbox").version
+            ),
         )
 
         verbose_group = parser.add_mutually_exclusive_group()
