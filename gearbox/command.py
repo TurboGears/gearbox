@@ -27,7 +27,7 @@ class Command(object):
         """Override to do something useful."""
         raise NotImplementedError
 
-    def _run(self, parsed_args):
+    def run(self, parsed_args):
         self.take_action(parsed_args)
         return 0
 

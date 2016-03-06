@@ -164,7 +164,7 @@ class GearBox(object):
             full_name = ' '.join([self.NAME, cmd_name])
             cmd_parser = cmd.get_parser(full_name)
             parsed_args = cmd_parser.parse_args(sub_argv)
-            return cmd._run(parsed_args)
+            return cmd.run(parsed_args)
         except Exception as err:
             log.exception(err)
             return 4
