@@ -1010,7 +1010,12 @@ def cherrypy_server_runner(
                   (port, protocol, port))
         else:
             print('serving on %s://%s:%s' % (protocol, host, port))
-        server.start()
+
+        try:
+            server.start()
+        except Exception as e:
+            print('fail starting HTTP server. The error was: %s' % e)
+        
     except (KeyboardInterrupt, SystemExit):
         server.stop()
 
