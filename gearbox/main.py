@@ -194,7 +194,7 @@ class GearBox(object):
 
     def _getargspec(self, func):
         if not hasattr(inspect, 'signature'):
-            return inspect.getargspec(func)
+            return inspect.getargspec(func.__init__)
         else:  # pragma: no cover
             sig = inspect.signature(func)
             args = [
