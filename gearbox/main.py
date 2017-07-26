@@ -2,7 +2,12 @@ from __future__ import print_function
 
 import argparse
 import inspect
-import sys, os, pkg_resources, logging, warnings
+import sys
+import os
+import pkg_resources
+import logging
+import warnings
+
 from .utils.plugins import find_egg_info_dir
 from .commands.help import HelpCommand, HelpAction
 from .commandmanager import CommandManager
