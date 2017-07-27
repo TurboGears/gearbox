@@ -265,15 +265,20 @@ class ServeCommand(Command):
         try:
             server = self.loadserver(server_spec, name=server_name,
                                      relative_to=base, global_conf=parsed_vars)
-            app = self.loadapp(app_spec, name=app_name,
-                               relative_to=base, global_conf=parsed_vars)
         except Exception:
-            self.out('Failed to load application or server', error=True)
+            self.out('Failed to load server', error=True)
             raise
 
         if log_fn:
             log_fn = os.path.join(base, log_fn)
             setup_logging(log_fn)
+
+        try:
+            app = self.loadapp(app_spec, name=app_name,
+                               relative_to=base, global_conf=parsed_vars)
+        except Exception:
+            self.out('Failed to load application', error=True)
+            raise
 
         if self.verbose > 0:
             if hasattr(os, 'getpid'):

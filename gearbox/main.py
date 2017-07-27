@@ -2,7 +2,12 @@ from __future__ import print_function
 
 import argparse
 import inspect
-import sys, os, pkg_resources, logging, warnings
+import sys
+import os
+import pkg_resources
+import logging
+import warnings
+
 from .utils.plugins import find_egg_info_dir
 from .commands.help import HelpCommand, HelpAction
 from .commandmanager import CommandManager
@@ -156,7 +161,7 @@ class GearBox(object):
 
         cmd_factory, cmd_name, sub_argv = subcommand
         kwargs = {}
-        if 'cmd_name' in inspect.getargspec(cmd_factory.__init__).args:
+        if 'cmd_name' in self._getargspec(cmd_factory)[0]:  # Check to see if 'cmd_name' is in cmd_factory's args
             kwargs['cmd_name'] = cmd_name
         cmd = cmd_factory(self, self.options, **kwargs)
 
@@ -191,6 +196,31 @@ class GearBox(object):
         dist = pkg_resources.get_distribution(package_name)
         for epname, ep in dist.get_entry_map('gearbox.project_commands').items():
             self.command_manager.commands[epname.replace('_', ' ')] = ep
+
+    def _getargspec(self, func):
+        if not hasattr(inspect, 'signature'):
+            return inspect.getargspec(func.__init__)
+        else:  # pragma: no cover
+            sig = inspect.signature(func)
+            args = [
+                p.name for p in sig.parameters.values()
+                if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
+            ]
+            varargs = [
+                p.name for p in sig.parameters.values()
+                if p.kind == inspect.Parameter.VAR_POSITIONAL
+            ]
+            varargs = varargs[0] if varargs else None
+            varkw = [
+                p.name for p in sig.parameters.values()
+                if p.kind == inspect.Parameter.VAR_KEYWORD
+            ]
+            varkw = varkw[0] if varkw else None
+            defaults = tuple((
+                p.default for p in sig.parameters.values()
+                if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD and p.default is not p.empty
+            )) or None
+            return args, varargs, varkw, defaults
 
 
 def main():
