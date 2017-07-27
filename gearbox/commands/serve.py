@@ -21,10 +21,12 @@ import time
 import traceback
 import platform
 
-from gearbox.utils.log import setup_logging
+import hupper
+from hupper.reloader import Reloader, FileMonitorProxy
 from paste.deploy import loadapp, loadserver
 from paste.deploy.converters import asbool
 
+from gearbox.utils.log import setup_logging
 from gearbox.command import Command
 
 MAXFD = 1024
@@ -41,13 +43,14 @@ if platform.system() == 'Windows' and not hasattr(os, 'kill'): # pragma: no cove
 else:
     kill = os.kill
 
+
 class DaemonizeException(Exception):
     pass
+
 
 class ServeCommand(Command):
     _scheme_re = re.compile(r'^[a-z][a-z]+:', re.I)
 
-    _reloader_environ_key = 'PYTHON_RELOADER_SHOULD_RUN'
     _monitor_environ_key = 'PASTE_MONITOR_SHOULD_RUN'
 
     possible_subcommands = ('start', 'stop', 'restart', 'status')
@@ -136,7 +139,8 @@ class ServeCommand(Command):
     def get_description(self):
         return 'Serves a web application that uses a PasteDeploy configuration file'
 
-    def out(self, msg, error=False): # pragma: no cover
+    @classmethod
+    def out(cls, msg, error=False): # pragma: no cover
         log = logging.getLogger('gearbox')
         if error:
             log.error(msg)
@@ -144,6 +148,10 @@ class ServeCommand(Command):
             log.info(msg)
 
     def take_action(self, opts):
+        # Seems there is no better way to change hupper output
+        FileMonitorProxy.out = self.out
+        Reloader.out = self.out
+
         if opts.stop_daemon:
             return self.stop_daemon(opts)
 
@@ -164,21 +172,32 @@ class ServeCommand(Command):
             cmd = None
             restvars = opts.args[0:]
 
-        if opts.reload:
-            if os.environ.get(self._reloader_environ_key):
-                if self.verbose > 1:
-                    self.out('Running reloading file monitor')
-                install_reloader(int(opts.reload_interval), [app_spec])
-            else:
-                return self.restart_with_reloader()
-
         if cmd not in (None, 'start', 'stop', 'restart', 'status'):
-            self.out(
-                'Error: must give start|stop|restart (not %s)' % cmd)
+            self.out('Error: must give start|stop|restart (not %s)' % cmd)
             return 2
 
         if cmd == 'status' or opts.show_status:
             return self.show_status(opts)
+
+        if opts.monitor_restart and opts.reload:
+            self.out('Cannot user --monitor-restart with --reload')
+            return 2
+
+        if opts.monitor_restart and not os.environ.get(self._monitor_environ_key):
+            # gearbox serve was started with an angel and we are not already inside the angel.
+            # Switch this process to being the angel and start a new one with the real server.
+            return self.restart_with_monitor()
+
+        if opts.reload and not hupper.is_active():
+            if self.verbose > 1:
+                self.out('Running reloading file monitor')
+            hupper.start_reloader('gearbox.main.main',
+                                  reload_interval=opts.reload_interval,
+                                  verbose=self.verbose)
+
+        if hupper.is_active():
+            # Tack also config file changes
+            hupper.get_reloader().watch_files([opts.config_file])
 
         if cmd == 'restart' or cmd == 'stop':
             result = self.stop_daemon(opts)
@@ -228,10 +247,6 @@ class ServeCommand(Command):
                 if self.verbose > 0:
                     self.out(str(ex))
                 return 2
-
-        if (opts.monitor_restart
-            and not os.environ.get(self._monitor_environ_key)):
-            return self.restart_with_monitor()
 
         if opts.pid_file:
             self.record_pid(opts.pid_file)
@@ -460,22 +475,14 @@ class ServeCommand(Command):
         self.out('Server running in PID %s' % pid)
         return 0
 
-    def restart_with_reloader(self): # pragma: no cover
-        self.restart_with_monitor(reloader=True)
-
-    def restart_with_monitor(self, reloader=False): # pragma: no cover
+    def restart_with_monitor(self):  # pragma: no cover
         if self.verbose > 0:
-            if reloader:
-                self.out('Starting subprocess with file monitor')
-            else:
-                self.out('Starting subprocess with monitor parent')
+            self.out('Starting subprocess with angel')
+
         while 1:
             args = self.get_fixed_argv()
             new_environ = os.environ.copy()
-            if reloader:
-                new_environ[self._reloader_environ_key] = 'true'
-            else:
-                new_environ[self._monitor_environ_key] = 'true'
+            new_environ[self._monitor_environ_key] = 'true'
             proc = None
             try:
                 try:
@@ -496,13 +503,8 @@ class ServeCommand(Command):
                     except (OSError, IOError):
                         pass
 
-            if reloader:
-                # Reloader always exits with code 3; but if we are
-                # a monitor, any exit code will restart
-                if exit_code != 3:
-                    return exit_code
             if self.verbose > 0:
-                self.out('%s %s %s' % ('-' * 20, 'Restarting', '-' * 20))
+                self.out('%s %s %s' % ('-' * 20, 'Server died, restarting', '-' * 20))
 
     def change_user_group(self, user, group): # pragma: no cover
         if not user and not group:
@@ -540,6 +542,7 @@ class ServeCommand(Command):
             os.setgid(gid)
         if uid:
             os.setuid(uid)
+
 
 class LazyWriter(object):
 
@@ -581,6 +584,7 @@ class LazyWriter(object):
     def flush(self):
         self.open().flush()
 
+
 def live_pidfile(pidfile): # pragma: no cover
     """(pidfile:str) -> int | None
     Returns an int found in the named file, if there is one,
@@ -597,6 +601,7 @@ def live_pidfile(pidfile): # pragma: no cover
                 return pid
     return None
 
+
 def read_pidfile(filename):
     if os.path.exists(filename):
         try:
@@ -608,38 +613,6 @@ def read_pidfile(filename):
     else:
         return None
 
-def ensure_port_cleanup(
-        bound_addresses, maxtries=30, sleeptime=2): # pragma: no cover
-    """
-    This makes sure any open ports are closed.
-
-    Does this by connecting to them until they give connection
-    refused.  Servers should call like::
-
-        ensure_port_cleanup([80, 443])
-    """
-    atexit.register(_cleanup_ports, bound_addresses, maxtries=maxtries,
-        sleeptime=sleeptime)
-
-def _cleanup_ports(
-        bound_addresses, maxtries=30, sleeptime=2): # pragma: no cover
-    # Wait for the server to bind to the port.
-    import socket
-    import errno
-    for bound_address in bound_addresses:
-        for attempt in range(maxtries):
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            try:
-                sock.connect(bound_address)
-            except socket.error as e:
-                if e.args[0] != errno.ECONNREFUSED:
-                    raise
-                break
-            else:
-                time.sleep(sleeptime)
-        else:
-            raise SystemExit('Timeout waiting for port.')
-        sock.close()
 
 def _turn_sigterm_into_systemexit(): # pragma: no cover
     """
@@ -653,177 +626,6 @@ def _turn_sigterm_into_systemexit(): # pragma: no cover
         raise SystemExit
     signal.signal(signal.SIGTERM, handle_term)
 
-def install_reloader(poll_interval=1, extra_files=None): # pragma: no cover
-    """
-    Install the reloading monitor.
-
-    On some platforms server threads may not terminate when the main
-    thread does, causing ports to remain open/locked.  The
-    ``raise_keyboard_interrupt`` option creates a unignorable signal
-    which causes the whole application to shut-down (rudely).
-    """
-    mon = Monitor(poll_interval=poll_interval)
-    if extra_files is None:
-        extra_files = []
-    mon.extra_files.extend(extra_files)
-    t = threading.Thread(target=mon.periodic_reload)
-    t.setDaemon(True)
-    t.start()
-
-class classinstancemethod(object):
-    """
-    Acts like a class method when called from a class, like an
-    instance method when called by an instance.  The method should
-    take two arguments, 'self' and 'cls'; one of these will be None
-    depending on how the method was called.
-    """
-
-    def __init__(self, func):
-        self.func = func
-        self.__doc__ = func.__doc__
-
-    def __get__(self, obj, type=None):
-        return _methodwrapper(self.func, obj=obj, type=type)
-
-class _methodwrapper(object):
-
-    def __init__(self, func, obj, type):
-        self.func = func
-        self.obj = obj
-        self.type = type
-
-    def __call__(self, *args, **kw):
-        assert not 'self' in kw and not 'cls' in kw, (
-            "You cannot use 'self' or 'cls' arguments to a "
-            "classinstancemethod")
-        return self.func(*((self.obj, self.type) + args), **kw)
-
-class Monitor(object): # pragma: no cover
-    """
-    A file monitor and server restarter.
-
-    Use this like:
-
-    ..code-block:: Python
-
-        install_reloader()
-
-    Then make sure your server is installed with a shell script like::
-
-        err=3
-        while test "$err" -eq 3 ; do
-            python server.py
-            err="$?"
-        done
-
-    or is run from this .bat file (if you use Windows)::
-
-        @echo off
-        :repeat
-            python server.py
-        if %errorlevel% == 3 goto repeat
-
-    or run a monitoring process in Python (``pserve --reload`` does
-    this).  
-
-    Use the ``watch_file(filename)`` function to cause a reload/restart for
-    other other non-Python files (e.g., configuration files).  If you have
-    a dynamic set of files that grows over time you can use something like::
-
-        def watch_config_files():
-            return CONFIG_FILE_CACHE.keys()
-        add_file_callback(watch_config_files)
-
-    Then every time the reloader polls files it will call
-    ``watch_config_files`` and check all the filenames it returns.
-    """
-    instances = []
-    global_extra_files = []
-    global_file_callbacks = []
-
-    def __init__(self, poll_interval):
-        self.module_mtimes = {}
-        self.keep_running = True
-        self.poll_interval = poll_interval
-        self.extra_files = list(self.global_extra_files)
-        self.instances.append(self)
-        self.file_callbacks = list(self.global_file_callbacks)
-
-    def _exit(self):
-        # use os._exit() here and not sys.exit() since within a
-        # thread sys.exit() just closes the given thread and
-        # won't kill the process; note os._exit does not call
-        # any atexit callbacks, nor does it do finally blocks,
-        # flush open files, etc.  In otherwords, it is rude.
-        os._exit(3)
-
-    def periodic_reload(self):
-        while True:
-            if not self.check_reload():
-                self._exit()
-                break
-            time.sleep(self.poll_interval)
-
-    def check_reload(self):
-        filenames = list(self.extra_files)
-        for file_callback in self.file_callbacks:
-            try:
-                filenames.extend(file_callback())
-            except:
-                print(
-                    "Error calling reloader callback %r:" % file_callback)
-                traceback.print_exc()
-        for module in tuple(sys.modules.values()):
-            try:
-                filename = module.__file__
-            except (AttributeError, ImportError):
-                continue
-            if filename is not None:
-                filenames.append(filename)
-        for filename in filenames:
-            try:
-                stat = os.stat(filename)
-                if stat:
-                    mtime = stat.st_mtime
-                else:
-                    mtime = 0
-            except (OSError, IOError):
-                continue
-            if filename.endswith('.pyc') and os.path.exists(filename[:-1]):
-                mtime = max(os.stat(filename[:-1]).st_mtime, mtime)
-            if not filename in self.module_mtimes:
-                self.module_mtimes[filename] = mtime
-            elif self.module_mtimes[filename] < mtime:
-                print("%s changed; reloading..." % filename)
-                return False
-        return True
-
-    def watch_file(self, cls, filename):
-        """Watch the named file for changes"""
-        filename = os.path.abspath(filename)
-        if self is None:
-            for instance in cls.instances:
-                instance.watch_file(filename)
-            cls.global_extra_files.append(filename)
-        else:
-            self.extra_files.append(filename)
-
-    watch_file = classinstancemethod(watch_file)
-
-    def add_file_callback(self, cls, callback):
-        """Add a callback -- a function that takes no parameters -- that will
-        return a list of filenames to watch for changes."""
-        if self is None:
-            for instance in cls.instances:
-                instance.add_file_callback(callback)
-            cls.global_file_callbacks.append(callback)
-        else:
-            self.file_callbacks.append(callback)
-
-    add_file_callback = classinstancemethod(add_file_callback)
-
-watch_file = Monitor.watch_file
-add_file_callback = Monitor.add_file_callback
 
 # For paste.deploy server instantiation (egg:gearbox#wsgiref)
 def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
@@ -891,8 +693,9 @@ def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
     if certfile and keyfile:
         server_type += ' Secure'
         scheme += 's'
-    print('Starting %s HTTP server on %s://%s:%s' % (server_type, scheme, host, port))
+    ServeCommand.out('Starting %s HTTP server on %s://%s:%s' % (server_type, scheme, host, port))
     server.serve_forever()
+
 
 # For paste.deploy server instantiation (egg:gearbox#gevent)
 def gevent_server_factory(global_config, **kw):
@@ -906,10 +709,11 @@ def gevent_server_factory(global_config, **kw):
     port = int(kw.get('port', 8080))
 
     def _gevent_serve(wsgi_app):
-        print('Starting Gevent HTTP server on http://%s:%s' % (host, port))
+        ServeCommand.out('Starting Gevent HTTP server on http://%s:%s' % (host, port))
         WSGIServer((host, port), wsgi_app).serve_forever()
 
     return _gevent_serve
+
 
 # For paste.deploy server instantiation (egg:gearbox#cherrypy)
 def cherrypy_server_runner(

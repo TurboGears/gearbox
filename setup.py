@@ -34,7 +34,8 @@ setup(name='gearbox',
       zip_safe=False,
       install_requires=[
         "Tempita",
-        "PasteDeploy"
+        "PasteDeploy",
+        "hupper"
       ],
       entry_points={
         'console_scripts': [
