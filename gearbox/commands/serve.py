@@ -705,7 +705,10 @@ def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
 # For paste.deploy server instantiation (egg:gearbox#gevent)
 def gevent_server_factory(global_config, **kw):
     from gevent import reinit
-    from gevent.wsgi import WSGIServer
+    try:
+        from gevent.wsgi import WSGIServer
+    except ModuleNotFoundError:
+        from gevent.pywsgi import WSGIServer
     from gevent.monkey import patch_all
     reinit()
     patch_all(dns=False)
