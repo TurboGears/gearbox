@@ -810,7 +810,7 @@ def cherrypy_server_runner(
         import cheroot.wsgi as wsgiserver
         server = wsgiserver.Server(bind_addr, app,
             server_name=server_name, **kwargs)
-    except ImportError:
+    except ModuleNotFoundError:
         # Nope. Try to import from older CherryPy releases.
         # We might just take another ImportError here. Oh well.
         from cherrypy import wsgiserver
