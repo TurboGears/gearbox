@@ -804,10 +804,19 @@ def cherrypy_server_runner(
         if var is not None:
             kwargs[var_name] = int(var)
 
-    from cherrypy import wsgiserver
+    server = None
+    try:
+        # Try to import from newer CherryPy releases.
+        import cheroot.wsgi as wsgiserver
+        server = wsgiserver.Server(bind_addr, app,
+            server_name=server_name, **kwargs)
+    except ImportError:
+        # Nope. Try to import from older CherryPy releases.
+        # We might just take another ImportError here. Oh well.
+        from cherrypy import wsgiserver
+        server = wsgiserver.CherryPyWSGIServer(bind_addr, app,
+            server_name=server_name, **kwargs)
 
-    server = wsgiserver.CherryPyWSGIServer(bind_addr, app,
-        server_name=server_name, **kwargs)
     server.ssl_certificate = server.ssl_private_key = ssl_pem
     if protocol_version:
         server.protocol = protocol_version
