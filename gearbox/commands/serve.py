@@ -705,7 +705,10 @@ def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
 # For paste.deploy server instantiation (egg:gearbox#gevent)
 def gevent_server_factory(global_config, **kw):
     from gevent import reinit
-    from gevent.wsgi import WSGIServer
+    try:
+        from gevent.pywsgi import WSGIServer
+    except ImportError:
+        from gevent.wsgi import WSGIServer
     from gevent.monkey import patch_all
     reinit()
     patch_all(dns=False)
@@ -804,10 +807,19 @@ def cherrypy_server_runner(
         if var is not None:
             kwargs[var_name] = int(var)
 
-    from cherrypy import wsgiserver
+    server = None
+    try:
+        # Try to import from newer CherryPy releases.
+        import cheroot.wsgi as wsgiserver
+        server = wsgiserver.Server(bind_addr, app,
+            server_name=server_name, **kwargs)
+    except ImportError:
+        # Nope. Try to import from older CherryPy releases.
+        # We might just take another ImportError here. Oh well.
+        from cherrypy import wsgiserver
+        server = wsgiserver.CherryPyWSGIServer(bind_addr, app,
+            server_name=server_name, **kwargs)
 
-    server = wsgiserver.CherryPyWSGIServer(bind_addr, app,
-        server_name=server_name, **kwargs)
     server.ssl_certificate = server.ssl_private_key = ssl_pem
     if protocol_version:
         server.protocol = protocol_version
