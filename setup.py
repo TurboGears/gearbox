@@ -7,7 +7,7 @@ try:
 except IOError:
     README = ''
 
-version = "0.1.1"
+version = "0.2.0"
 
 setup(name='gearbox',
       version=version,
@@ -35,7 +35,7 @@ setup(name='gearbox',
       install_requires=[
         "Tempita",
         "PasteDeploy",
-        "hupper"
+        "hupper >= 1.3"
       ],
       entry_points={
         'console_scripts': [

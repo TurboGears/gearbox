@@ -22,7 +22,7 @@ import traceback
 import platform
 
 import hupper
-from hupper.reloader import Reloader, FileMonitorProxy
+import hupper.reloader
 from paste.deploy import loadapp, loadserver
 from paste.deploy.converters import asbool
 
@@ -148,10 +148,6 @@ class ServeCommand(Command):
             log.info(msg)
 
     def take_action(self, opts):
-        # Seems there is no better way to change hupper output
-        FileMonitorProxy.out = self.out
-        Reloader.out = self.out
-
         if opts.stop_daemon:
             return self.stop_daemon(opts)
 
@@ -191,9 +187,15 @@ class ServeCommand(Command):
         if opts.reload and not hupper.is_active():
             if self.verbose > 1:
                 self.out('Running reloading file monitor')
-            hupper.start_reloader('gearbox.main.main',
-                                  reload_interval=opts.reload_interval,
-                                  verbose=self.verbose)
+            reloader = hupper.reloader.Reloader(
+                worker_path='gearbox.main.main',
+                reload_interval=opts.reload_interval,
+                monitor_factory=hupper.reloader.find_default_monitor_factory(
+                    logging.getLogger('gearbox')
+                ),
+                logger=logging.getLogger('gearbox'),
+            )
+            reloader.run()
 
         if hupper.is_active():
             # Tack also config file changes
