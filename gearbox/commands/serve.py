@@ -689,7 +689,10 @@ def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
         server_class = SecureWSGIServer
 
     if threaded:
-        from SocketServer import ThreadingMixIn
+        try:
+            from socketserver import ThreadingMixIn
+        except ImportError:
+            from SocketServer import ThreadingMixIn
         class GearboxWSGIServer(ThreadingMixIn, server_class): pass
         server_type = 'Threaded'
     else:
