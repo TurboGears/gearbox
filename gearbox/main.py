@@ -90,6 +90,8 @@ class GearBox(object):
             except AttributeError:
                 pass
 
+        logging.basicConfig(level=logging.DEBUG)
+
         root_logger = logging.getLogger('')
         root_logger.setLevel(logging.INFO)
 
