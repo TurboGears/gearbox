@@ -124,7 +124,7 @@ class ServeCommand(Command):
                 dest='set_group',
                 metavar="GROUP",
                 help="Set the group (usually only possible when run as root)")
-    
+
         parser.add_argument(
             '--stop-daemon',
             dest='stop_daemon',
@@ -558,6 +558,8 @@ class LazyWriter(object):
     to.
     """
 
+    buffer = property(lambda x: x.open(), None, None)
+
     def __init__(self, filename, mode='w'):
         self.filename = filename
         self.fileobj = None
@@ -717,7 +719,7 @@ def gevent_server_factory(global_config, **kw):
     from gevent.monkey import patch_all
     reinit()
     patch_all(dns=False)
-    
+
     host = kw.get('host', '0.0.0.0')
     port = int(kw.get('port', 8080))
 
