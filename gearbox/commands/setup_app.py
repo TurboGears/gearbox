@@ -66,7 +66,12 @@ class SetupAppCommand(Command):
         the extra attributes ``global_conf``, ``local_conf`` and
         ``filename``
         """
-        modules = [line.strip() for line in dist.get_metadata_lines('top_level.txt')
+        try:
+            top_level_lines = dist.read_text("top_level.txt").split("\n")
+        except AttributeError:
+            # Backward compatbility with older PasteDeploy
+            top_level_lines = dist.get_metadata_lines('top_level.txt')
+        modules = [line.strip() for line in top_level_lines
                     if line.strip() and not line.strip().startswith('#')]
 
         if not modules:
