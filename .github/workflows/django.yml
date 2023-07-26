@@ -1,0 +1,69 @@
+name: Django CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Run Tests
+      run: |
+        หลาม Manage.py ทดสอบ
+กับคำค้นหา
+
+tw.api.CSSLink (คลาสในtw.api )
+
+tw.api.CSSMixin (คลาสในtw.api )
+
+tw.api.JSLink (คลาสในtw.api )
+
+tw.api.JSMixin (คลาสในtw.api )
+
+tw.api.Link (คลาสในtw.api )
+
+tw.api.Resource.inject (เมธอด ในtw.api )
+
+tw.api.Widget.displays_on (แอตทริบิวต์ ในtw.api )
+
+tw.api.Widget.ifilter_children (เมธอด ในtw.api )
+
+tw.api.Widget.post_init (เมธอด ในtw.api )
+
+tw.api.Widget.render (เมธอด ในtw.api )
+
+tw.api.WidgetBunch (คลาสในtw.api )
+
+tw.api.inject_resources (ฟังก์ชัน ในtw.api )
+
+tw.api.js_function (คลาสในtw.api )
+
+tw.core.resource_injector (โมดูล ในtw.core.resource_injector )
+
+tw.core.resource_injector.inject_resources (ฟังก์ชัน ในtw.core.resource_injector )
+
+tw.core.resource_injector.injector_middleware (ฟังก์ชัน ในtw.core.resource_injector )
+
+tw.core.resources.JSLink (คลาสในtw.core.resources )
+
+tw.core.resources.Link (คลาส ในtw.core.resources )
+
+tw.mods.base.HostFramework.end_request (เมธอด ในtw.mods.base )...
