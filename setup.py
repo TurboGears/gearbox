@@ -35,6 +35,7 @@ setup(name='gearbox',
       include_package_data=True,
       zip_safe=False,
       install_requires=[
+        "setuptools",
         "Tempita",
         "PasteDeploy",
         "hupper >= 1.3"
