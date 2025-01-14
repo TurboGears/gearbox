@@ -3,7 +3,6 @@
 # http://www.opensource.org/licenses/mit-license.php
 
 import os
-import pkg_resources
 import sys
 
 if sys.version_info[0] == 3: # pragma: no cover
@@ -64,11 +63,7 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
     # otherwise be skipped because leading dots make the file hidden:
     vars.setdefault('dot', '.')
     vars.setdefault('plus', '+')
-    use_pkg_resources = isinstance(source, tuple)
-    if use_pkg_resources:
-        names = sorted(pkg_resources.resource_listdir(source[0], source[1]))
-    else:
-        names = sorted(os.listdir(source))
+    names = sorted(os.listdir(source))
     pad = ' '*(indent*2)
     if not os.path.exists(dest):
         if verbosity >= 1:
@@ -78,10 +73,7 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
     elif verbosity >= 2:
         out('%sDirectory %s exists' % (pad, dest))
     for name in names:
-        if use_pkg_resources:
-            full = '/'.join([source[1], name])
-        else:
-            full = os.path.join(source, name)
+        full = os.path.join(source, name)
         reason = should_skip_file(name)
         if reason:
             if verbosity >= 2:
@@ -94,15 +86,7 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
         if dest_full.endswith('_tmpl'):
             dest_full = dest_full[:-5]
             sub_file = sub_vars
-        if use_pkg_resources and pkg_resources.resource_isdir(source[0], full):
-            if verbosity:
-                out('%sRecursing into %s' % (pad, os.path.basename(full)))
-            copy_dir((source[0], full), dest_full, vars, verbosity, simulate,
-                indent=indent+1,
-                sub_vars=sub_vars, interactive=interactive,
-                template_renderer=template_renderer, out_=out_)
-            continue
-        elif not use_pkg_resources and os.path.isdir(full):
+        if os.path.isdir(full):
             if verbosity:
                 out('%sRecursing into %s' % (pad, os.path.basename(full)))
             copy_dir(full, dest_full, vars, verbosity, simulate,
@@ -110,8 +94,6 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
                 sub_vars=sub_vars, interactive=interactive,
                 template_renderer=template_renderer, out_=out_)
             continue
-        elif use_pkg_resources:
-            content = pkg_resources.resource_string(source[0], full)
         else:
             f = open(full, 'rb')
             content = f.read()
@@ -144,9 +126,7 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
                     continue
             elif not overwrite:
                 continue # pragma: no cover
-        if verbosity and use_pkg_resources:
-            out('%sCopying %s to %s' % (pad, full, dest_full))
-        elif verbosity:
+        if verbosity:
             out(
                 '%sCopying %s to %s' % (pad, os.path.basename(full),
                                         dest_full))
