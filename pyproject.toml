@@ -45,21 +45,19 @@ zip-safe = false
 [project.scripts]
 gearbox = "gearbox.main:main"
 
-[tool.setuptools.entry-points]
-"gearbox.commands" = [
-    "makepackage = gearbox.commands.basic_package:MakePackageCommand",
-    "serve = gearbox.commands.serve:ServeCommand",
-    "setup-app = gearbox.commands.setup_app:SetupAppCommand",
-    "scaffold = gearbox.commands.scaffold:ScaffoldCommand",
-    "patch = gearbox.commands.patch:PatchCommand"
-]
-"paste.server_runner" = [
-    "wsgiref = gearbox.commands.serve:wsgiref_server_runner",
-    "cherrypy = gearbox.commands.serve:cherrypy_server_runner"
-]
-"paste.server_factory" = [
-    "gevent = gearbox.commands.serve:gevent_server_factory"
-]
+[project.entry-points."gearbox.commands"]
+makepackage = "gearbox.commands.basic_package:MakePackageCommand"
+serve = "gearbox.commands.serve:ServeCommand"
+setup-app = "gearbox.commands.setup_app:SetupAppCommand"
+scaffold = "gearbox.commands.scaffold:ScaffoldCommand"
+patch = "gearbox.commands.patch:PatchCommand"
+
+[project.entry-points."paste.server_runner"]
+wsgiref = "gearbox.commands.serve:wsgiref_server_runner"
+cherrypy = "gearbox.commands.serve:Cherrypy_server_runner"
+
+[project.entry-points."paste.server_factory"]
+gevent = "gearbox.commands.serve:gevent_server_factory"
 
 [tool.ruff]
 line-length = 88
