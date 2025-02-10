@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gearbox"
+version = "0.3.0"
+description = "Command line toolkit born as a PasteScript replacement for the TurboGears2 web framework"
+readme = "README.rst"
+keywords = ["web framework", "command-line", "setup"]
+license = { text = "MIT" }
+authors = [
+    { name = "Alessandro Molina", email = "amol@turbogears.org" }
+]
+urls = { Homepage = "https://github.com/TurboGears/gearbox" }
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Framework :: TurboGears",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: WSGI",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = [
+    "setuptools",
+    "Tempita",
+    "PasteDeploy",
+    "hupper>=1.3"
+]
+
+[tool.setuptools.packages.find]
+exclude = ["ez_setup", "examples", "tests"]
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[project.scripts]
+gearbox = "gearbox.main:main"
+
+[tool.setuptools.entry-points]
+"gearbox.commands" = [
+    "makepackage = gearbox.commands.basic_package:MakePackageCommand",
+    "serve = gearbox.commands.serve:ServeCommand",
+    "setup-app = gearbox.commands.setup_app:SetupAppCommand",
+    "scaffold = gearbox.commands.scaffold:ScaffoldCommand",
+    "patch = gearbox.commands.patch:PatchCommand"
+]
+"paste.server_runner" = [
+    "wsgiref = gearbox.commands.serve:wsgiref_server_runner",
+    "cherrypy = gearbox.commands.serve:cherrypy_server_runner"
+]
+"paste.server_factory" = [
+    "gevent = gearbox.commands.serve:gevent_server_factory"
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+output-format = "grouped"
+lint.select = ["E4", "E7", "E9", "F", "I001",
+               "D100", "D101", "D102", "D103",
+               "D104", "D107", "D417", "ANN001",
+               "ANN201", "ANN202", "ANN204", 
+               "ANN205", "ANN206"]
+exclude = ["build", "dist", ".venv", "venv", "env", "__pycache__"]
