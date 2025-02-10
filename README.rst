@@ -1,36 +1,32 @@
 About gearbox
 -------------------------
 
-Gearbox is a paster command replacement for TurboGears2.
-It has been created during the process of providing Python3 support to the TurboGears2 web framework,
-while still being backward compatible with the existing TurboGears projects.
+Gearbox is a command-line tool designed as a replacement for `paster` in TurboGears2 projects.
+It originated during the effort to provide Python 3 support for TurboGears2, while maintaining
+compatibility with existing projects.
 
-Gearbox is based on a stripped down version of *Cliff* command line framework, you might want
-to consider `Cliff <http://docs.openstack.org/developer/cliff/>`_ for more advanced use cases
-and custom command interpreters.
+Gearbox is built upon a streamlined version of the *Cliff* command-line framework. For more complex
+command-line applications and custom interpreters, consider exploring `Cliff <https://cliff.readthedocs.io/en/latest/>`_.
 
 Installing
 -------------------------------
 
-gearbox can be installed from pypi::
+Install gearbox using pip:
 
     pip install gearbox
-
-should just work for most of the users
 
 Out of The Box
 ------------------------------
 
-Just by installing gearbox itself your TurboGears project will be able to use gearbox system wide
-commands like ``gearbox serve``, ``gearbox setup-app`` and ``gearbox makepackage`` commands.
-These commands provide a replacement for the paster serve, paster setup-app and paster create commands.
+Installing gearbox provides system-wide commands for TurboGears projects, including
+``gearbox serve``, ``gearbox setup-app``, and ``gearbox makepackage``. These commands
+replace their `paster` counterparts.
 
-The main difference with the paster command is usually only that gearbox commands explicitly set the
-configuration file using the ``--config`` option instead of accepting it positionally.  By default gearbox
-will always load a configuration file named `development.ini`, this mean you can simply run ``gearbox serve``
-in place of ``paster serve development.ini``
+The primary difference from `paster` is that Gearbox commands require explicit specification of the
+configuration file using the ``--config`` option. By default, Gearbox loads `development.ini`.
+Therefore, ``gearbox serve`` can be used instead of ``paster serve development.ini``.
 
-To have a list of the available commands simply run ``gearbox --help``::
+To view a list of available commands, run ``gearbox --help``:
 
     $ gearbox --help
     usage: gearbox [--version] [-v] [--log-file LOG_FILE] [-q] [-h] [--debug]
@@ -54,8 +50,9 @@ To have a list of the available commands simply run ``gearbox --help``::
       setup-app      Setup an application, given a config file
       tgshell        Opens an interactive shell with a TurboGears2 app loaded
       scaffold       Creates a new file from a scaffold template
+      patch          Patches files by replacing, appending or deleting text.
 
-Then it is possible to ask for help for a given command by using ``gearbox help command``::
+For detailed help on a specific command, use ``gearbox help command``:
 
     $ gearbox help serve
     usage: gearbox serve [-h] [-n NAME] [-s SERVER_TYPE]
@@ -101,89 +98,70 @@ Then it is possible to ask for help for a given command by using ``gearbox help 
 Development Tools Commands
 -------------------------------
 
-Installing the TurboGears 2.3 development tools you will get access some some gearbox commands specific
-to TurboGears2 projects management, those are the ``gearbox quickstart``, ``gearbox tgshell`` and
-``gearbox migrate`` commands.
+Installing the TurboGears development tools provides access to gearbox commands
+specific to TurboGears2 project management: ``gearbox quickstart``, ``gearbox tgshell``, and
+``gearbox migrate``.
 
-While the *quickstart* command will be automatically available, you will have to enable project scope plugins
-for gearbox before the other two became available. This will let gearbox know that you are running it inside
-a TurboGears2 project and so that the commands that only make sense for TurboGears2 projects will became available.
+The *quickstart* command is immediately available. However, project-scope plugins must be
+enabled for Gearbox to recognize a TurboGears2 project and make the other two commands available.
 
 Enabling migrate and tgshell commands
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To enable ``gearbox migrate`` and ``gearbox tgshell`` commands make sure that your *setup.py* `entry_points`
-look like::
+To enable ``gearbox migrate`` and ``gearbox tgshell``, ensure that the `[project.entry-points."gearbox.plugins"]` section
+in your `pyproject.toml` resembles the following:
 
-    entry_points={
-        'paste.app_factory': [
-            'main = makonoauth.config.middleware:make_app'
-        ],
-        'gearbox.plugins': [
-            'turbogears-devtools = tg.devtools'
-        ]
-    }
+.. code-block:: toml
 
-The **paste.app_factory** section will let ``gearbox serve`` know how to create the application that
-has to be served. Gearbox relies on PasteDeploy for application setup, so it required a paste.app_factory
-section to be able to correctly load the application.
+    [project.entry-points."gearbox.plugins"]
+    turbogears-devtools = "tg.devtools"
 
-While the **gearbox.plugins** section will let *gearbox* itself know that inside that directory the tg.devtools
-commands have to be enabled making ``gearbox tgshell`` and ``gearbox migrate`` available when we run gearbox
-from inside our project directory.
 
 Gearbox Interactive Mode
 -------------------------------
 
-By default launching gearbox without any subcommand will start the interactive mode.
-This provides an interactive prompt where gearbox commands, system shell commands and python statements
-can be executed. If you have any doubt about what you can do simply run the ``help`` command to get
-a list of the commands available (running ``help somecommand`` will provide help for the given sub command).
+Running gearbox without a subcommand starts the interactive mode. This provides a prompt
+for executing Gearbox commands, system shell commands, and Python statements. Use the
+``help`` command to list available commands (``help somecommand`` provides help for a
+specific command).
 
 Gearbox HTTP Servers
 ------------------------------
 
-If you are moving your TurboGears2 project from paster you will probably end serving your
-application with Paste HTTP server even if you are using the ``gearbox serve`` command.
+When migrating a TurboGears2 project from `paster`, you might still be serving the
+application with the Paste HTTP server even when using ``gearbox serve``.
 
-The reason for this behavior is that gearbox is going to use what is specified inside
-the **server:main** section of your *.ini* file to serve your application.
-TurboGears2 projects quickstarted before 2.3 used Paste and so the projects is probably
-configured to use Paste#http as the server. This is not an issue by itself, it will just require
-you to have Paste installed to be able to serve the application, to totally remove the Paste
-dependency simply replace **Paste#http** with **gearbox#wsgiref**.
+This occurs because Gearbox uses the settings in the **server:main** section of your *.ini*
+file. Projects created before TurboGears2 used Paste, so the project is likely configured
+to use `Paste#http` as the server. This requires Paste to be installed. To remove the Paste
+dependency, replace `Paste#http` with `gearbox#wsgiref`.
 
-The **gearbox#wsgiref** also supports an experimental multithreaded version that
-can be enabled by setting the ``wsgiref.threaded = true`` option in your server
-configuration section.
+The **gearbox#wsgiref** server also supports an experimental multithreaded version, enabled by
+setting `wsgiref.threaded = true` in the server configuration section.
 
 Serving with GEvent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Gearbox cames with builtin support for gevent, so serving an application under Gevent
-is just a matter of using **gearbox#gevent** as your server inside the **server:main** section
-of the configuration file.
+Gearbox includes built-in support for gevent. To serve an application with Gevent, use
+**gearbox#gevent** as the server in the **server:main** section of the configuration file.
 
-The gearbox gevent server will automatically monkeypatch all the python modules apart
-from the DNS related functions before loading your application.
-Not much more apart making sure that your code is gevent compatible is required.
+The Gearbox gevent server automatically monkey patches all Python modules except for
+DNS-related functions before loading the application. Ensure your code is gevent-compatible.
 
 Scaffolding
 -----------
 
-Scaffolding is the process of creating a new component of your web application 
-through a template or preset.
+Scaffolding creates new application components from templates.
 
-The ``gearbox scaffold`` command permits to create new files from scaffolds (file templates)
-which you can place inside your project itself. Scaffold files should be named with
-``.template`` extension and can be used by running::
+The ``gearbox scaffold`` command creates files from scaffolds (file templates) placed within
+your project. Scaffold files should have the ``.template`` extension and are used as follows:
 
     $ gearbox scaffold templatename target
 
-This will create a ``target`` file (do not provide the extension, that is specified inside
-the templatename itself) starting from the ``templatename`` scaffold.
+This creates a `target` file (without specifying the extension, which is defined in the
+`templatename` scaffold) from the `templatename` scaffold.
 
-A tipical scaffold filename will be named like ``model.py.template`` and will look like::
+A typical scaffold filename is `model.py.template` and contains:
 
     class {{target.capitalize()}}(DeclarativeBase):
         __tablename__ = '{{target.lower()}}s'
@@ -191,51 +169,51 @@ A tipical scaffold filename will be named like ``model.py.template`` and will lo
         uid = Column(Integer, primary_key=True)
         data = Column(Unicode(255), nullable=False)
 
+The scaffold command also supports looking up templates in specific paths using the `-l` or `--lookup` option,
+and placing the newly created files in a specific directory using the `-p` or `--path` option.
+You can also create the files in a subdirectory using the `-s` or `--subdir` option.
+
 Patching
 --------
 
-``patch`` is one of the few builtin commands of Gearbox and is commonly used to
-update code. You can think of it as an easier to used sed command mixed with python.
+``patch`` is a built-in Gearbox command for updating code. It functions as a Python-enhanced
+`sed` command.
 
-Here are a few examples, this will replace all xi:include occurrences
-with py:extends in all the template files recursively::
+Examples:
+
+Replace all `xi:include` occurrences with `py:extends` in all HTML template files recursively:
 
     $ gearbox patch -R '*.html' xi:include -r py:extends
 
-It is also possible to rely on regex and python for more complex
-replacements, like updating the Copyright year in your documentation::
+Update the copyright year in documentation using regular expressions and Python:
 
     $ gearbox patch -R '*.rst' -x 'Copyright(\s*)(\d+)' -e -r '"Copyright\\g<1>"+__import__("datetime").datetime.utcnow().strftime("%Y")'
 
-Please refer to ``gearbox help patch`` for available options.
-
+Refer to ``gearbox help patch`` for available options.
 
 Writing new gearbox commands
 ----------------------------
 
-Gearbox will automatically load any command registered as a setuptools entry point with
-``gearbox.commands`` key. To create a new command you must subclass the ``gearbox.command.Command``
-class, override the ``get_parser`` and ``take_action`` methods to provide custom options and
-a custom behaviour::
+Gearbox automatically loads commands registered as setuptools entry points under the
+`[project.entry-points."gearbox.commands"]` key in `pyproject.toml`. To create a new command, subclass ``gearbox.command.Command``,
+and override the `get_parser` and `take_action` methods to define custom options and behavior:
 
     class MyCcommand(Command):
         def take_action(self, opts):
             print('Hello World!')
 
-Then register your command in the setup.py entry points of your package::
+Register the command in the `[project.entry-points."gearbox.commands"]` section of your `pyproject.toml`:
 
-    setup(name='mydistribution',
-          entry_points={
-             'gearbox.commands': [
-                 'mycommand = mypackage.commands:MyCommand',
-             ]
-          })
+.. code-block:: toml
+
+    [project.entry-points."gearbox.commands"]
+    mycommand = "mypackage.commands:MyCommand"
 
 Template Based Commands
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Writing new gearbox template commands is as simple as creating a **gearbox.command.TemplateCommand** subclass and
-place it inside a *command.py* file in a python package.
+Creating new template commands involves subclassing
+**gearbox.command.TemplateCommand** within a `command.py` file in a Python package.
 
 Inherit from the class and implement the *get_description*, *get_parser* and *take_action* methods
 as described by the  documentation.
