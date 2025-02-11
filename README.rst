@@ -11,7 +11,7 @@ command-line applications and custom interpreters, consider exploring `Cliff <ht
 Installing
 -------------------------------
 
-Install gearbox using pip:
+Install gearbox using pip::
 
     pip install gearbox
 
@@ -26,7 +26,7 @@ The primary difference from `paster` is that Gearbox commands require explicit s
 configuration file using the ``--config`` option. By default, Gearbox loads `development.ini`.
 Therefore, ``gearbox serve`` can be used instead of ``paster serve development.ini``.
 
-To view a list of available commands, run ``gearbox --help``:
+To view a list of available commands, run ``gearbox --help``::
 
     $ gearbox --help
     usage: gearbox [--version] [-v] [--log-file LOG_FILE] [-q] [-h] [--debug]
@@ -52,7 +52,7 @@ To view a list of available commands, run ``gearbox --help``:
       scaffold       Creates a new file from a scaffold template
       patch          Patches files by replacing, appending or deleting text.
 
-For detailed help on a specific command, use ``gearbox help command``:
+For detailed help on a specific command, use ``gearbox help command``::
 
     $ gearbox help serve
     usage: gearbox serve [-h] [-n NAME] [-s SERVER_TYPE]
@@ -154,7 +154,7 @@ Scaffolding
 Scaffolding creates new application components from templates.
 
 The ``gearbox scaffold`` command creates files from scaffolds (file templates) placed within
-your project. Scaffold files should have the ``.template`` extension and are used as follows:
+your project. Scaffold files should have the ``.template`` extension and are used as follows::
 
     $ gearbox scaffold templatename target
 
@@ -162,6 +162,8 @@ This creates a `target` file (without specifying the extension, which is defined
 `templatename` scaffold) from the `templatename` scaffold.
 
 A typical scaffold filename is `model.py.template` and contains:
+
+.. code-block:: python
 
     class {{target.capitalize()}}(DeclarativeBase):
         __tablename__ = '{{target.lower()}}s'
@@ -181,11 +183,11 @@ Patching
 
 Examples:
 
-Replace all `xi:include` occurrences with `py:extends` in all HTML template files recursively:
+Replace all `xi:include` occurrences with `py:extends` in all HTML template files recursively::
 
     $ gearbox patch -R '*.html' xi:include -r py:extends
 
-Update the copyright year in documentation using regular expressions and Python:
+Update the copyright year in documentation using regular expressions and Python::
 
     $ gearbox patch -R '*.rst' -x 'Copyright(\s*)(\d+)' -e -r '"Copyright\\g<1>"+__import__("datetime").datetime.utcnow().strftime("%Y")'
 
@@ -197,6 +199,8 @@ Writing new gearbox commands
 Gearbox automatically loads commands registered as setuptools entry points under the
 `[project.entry-points."gearbox.commands"]` key in `pyproject.toml`. To create a new command, subclass ``gearbox.command.Command``,
 and override the `get_parser` and `take_action` methods to define custom options and behavior:
+
+.. code-block:: python
 
     class MyCcommand(Command):
         def take_action(self, opts):
