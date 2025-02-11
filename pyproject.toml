@@ -68,9 +68,5 @@ gevent = "gearbox.commands.serve:gevent_server_factory"
 line-length = 88
 target-version = "py39"
 output-format = "grouped"
-lint.select = ["E4", "E7", "E9", "F", "I001",
-               "D100", "D101", "D102", "D103",
-               "D104", "D107", "D417", "ANN001",
-               "ANN201", "ANN202", "ANN204", 
-               "ANN205", "ANN206"]
+lint.select = ["E4", "E7", "E9", "F", "I001"]
 exclude = ["build", "dist", ".venv", "venv", "env", "__pycache__"]

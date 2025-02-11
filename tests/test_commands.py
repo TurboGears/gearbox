@@ -1,15 +1,16 @@
-from importlib.resources import read_text
-import sys
 import argparse
+import sys
 import tempfile
 from unittest.mock import MagicMock, patch
 
 import pytest
-from gearbox.commands.serve import ServeCommand
-from gearbox.commands.help import HelpAction
+
 from gearbox.commandmanager import CommandManager
+from gearbox.commands.help import HelpAction
+from gearbox.commands.serve import ServeCommand
 from gearbox.commands.setup_app import SetupAppCommand
 from gearbox.main import main
+
 
 # --- Test for ServeCommand using external wsgiref --- 
 def test_serve_command():
