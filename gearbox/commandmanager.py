@@ -4,10 +4,8 @@
 This comes from OpenStack cliff.
 """
 
-import inspect
 import logging
-
-import pkg_resources
+from importlib.metadata import entry_points
 
 LOG = logging.getLogger(__name__)
 
@@ -45,7 +43,7 @@ class CommandManager(object):
 
     def load_commands(self, namespace):
         """Load all the commands from an entrypoint"""
-        for ep in pkg_resources.iter_entry_points(namespace):
+        for ep in entry_points().select(group=namespace):
             LOG.debug("found command %r", ep.name)
             cmd_name = (
                 ep.name.replace("_", " ") if self.convert_underscores else ep.name
@@ -73,16 +71,7 @@ class CommandManager(object):
             name = "%s %s" % (name, next_val) if name else next_val
             if name in self.commands:
                 cmd_ep = self.commands[name]
-                if hasattr(cmd_ep, "resolve"):
-                    cmd_factory = cmd_ep.resolve()
-                else:
-                    # NOTE(dhellmann): Some fake classes don't take
-                    # require as an argument. Yay?
-                    arg_spec = inspect.getargspec(cmd_ep.load)
-                    if "require" in arg_spec[0]:
-                        cmd_factory = cmd_ep.load(require=False)
-                    else:
-                        cmd_factory = cmd_ep.load()
+                cmd_factory = cmd_ep.load()
                 return (cmd_factory, name, search_args)
         else:
             raise ValueError("Unknown command %r" % next(iter(argv), ""))
