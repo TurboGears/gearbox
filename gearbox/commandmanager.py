@@ -4,8 +4,8 @@
 This comes from OpenStack cliff.
 """
 
+import importlib.metadata
 import logging
-from importlib.metadata import entry_points
 
 LOG = logging.getLogger(__name__)
 
@@ -43,7 +43,12 @@ class CommandManager(object):
 
     def load_commands(self, namespace):
         """Load all the commands from an entrypoint"""
-        for ep in entry_points().select(group=namespace):
+        entry_points = importlib.metadata.entry_points()
+        if hasattr(entry_points, "select"):
+            entry_points = entry_points.select(group=namespace)
+        else:
+            entry_points = entry_points.get(group=namespace, default=[])
+        for ep in entry_points:
             LOG.debug("found command %r", ep.name)
             cmd_name = (
                 ep.name.replace("_", " ") if self.convert_underscores else ep.name
