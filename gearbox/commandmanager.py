@@ -9,13 +9,11 @@ import logging
 
 import pkg_resources
 
-
 LOG = logging.getLogger(__name__)
 
 
 class EntryPointWrapper(object):
-    """Wrap up a command class already imported to make it look like a plugin.
-    """
+    """Wrap up a command class already imported to make it look like a plugin."""
 
     def __init__(self, name, command_class):
         self.name = name
@@ -34,6 +32,7 @@ class CommandManager(object):
     :param convert_underscores: Whether cliff should convert underscores to
                                 spaces in entry_point commands.
     """
+
     def __init__(self, namespace, convert_underscores=True):
         self.commands = {}
         self.namespace = namespace
@@ -47,10 +46,10 @@ class CommandManager(object):
     def load_commands(self, namespace):
         """Load all the commands from an entrypoint"""
         for ep in pkg_resources.iter_entry_points(namespace):
-            LOG.debug('found command %r', ep.name)
-            cmd_name = (ep.name.replace('_', ' ')
-                        if self.convert_underscores
-                        else ep.name)
+            LOG.debug("found command %r", ep.name)
+            cmd_name = (
+                ep.name.replace("_", " ") if self.convert_underscores else ep.name
+            )
             self.commands[cmd_name] = ep
         return
 
@@ -65,25 +64,25 @@ class CommandManager(object):
         return the processor and any remaining arguments.
         """
         search_args = argv[:]
-        name = ''
+        name = ""
         while search_args:
-            if search_args[0].startswith('-'):
-                name = '%s %s' % (name, search_args[0])
-                raise ValueError('Invalid command %r' % name)
+            if search_args[0].startswith("-"):
+                name = "%s %s" % (name, search_args[0])
+                raise ValueError("Invalid command %r" % name)
             next_val = search_args.pop(0)
-            name = '%s %s' % (name, next_val) if name else next_val
+            name = "%s %s" % (name, next_val) if name else next_val
             if name in self.commands:
                 cmd_ep = self.commands[name]
-                if hasattr(cmd_ep, 'resolve'):
+                if hasattr(cmd_ep, "resolve"):
                     cmd_factory = cmd_ep.resolve()
                 else:
                     # NOTE(dhellmann): Some fake classes don't take
                     # require as an argument. Yay?
                     arg_spec = inspect.getargspec(cmd_ep.load)
-                    if 'require' in arg_spec[0]:
+                    if "require" in arg_spec[0]:
                         cmd_factory = cmd_ep.load(require=False)
                     else:
                         cmd_factory = cmd_ep.load()
                 return (cmd_factory, name, search_args)
         else:
-            raise ValueError('Unknown command %r' % next(iter(argv), ''))
+            raise ValueError("Unknown command %r" % next(iter(argv), ""))

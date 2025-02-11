@@ -1,6 +1,8 @@
-from tempita import Template
-from .utils.copydir import copy_dir
 import os
+
+from tempita import Template
+
+from .utils.copydir import copy_dir
 
 
 class GearBoxTemplate(object):
@@ -24,5 +26,10 @@ class GearBoxTemplate(object):
             print("Creating directory %s" % output_dir)
             os.makedirs(output_dir)
 
-        copy_dir(template_dir, output_dir, vars, indent=1,
-                 template_renderer=self.template_renderer)
+        copy_dir(
+            template_dir,
+            output_dir,
+            vars,
+            indent=1,
+            template_renderer=self.template_renderer,
+        )

@@ -13,33 +13,32 @@ import ctypes
 import errno
 import logging
 import os
+import platform
 import re
 import subprocess
 import sys
 import threading
 import time
-import traceback
-import platform
 
 import hupper
 import hupper.reloader
 from paste.deploy import loadapp, loadserver
 from paste.deploy.converters import asbool
 
-from gearbox.utils.log import setup_logging
 from gearbox.command import Command
+from gearbox.utils.log import setup_logging
 
 MAXFD = 1024
 
-if platform.system() == 'Windows' and not hasattr(os, 'kill'): # pragma: no cover
+if platform.system() == "Windows" and not hasattr(os, "kill"):  # pragma: no cover
     # py 2.6 on windows
     def kill(pid, sig=None):
         """kill function for Win32"""
         # signal is ignored, semibogus raise message
         kernel32 = ctypes.windll.kernel32
         handle = kernel32.OpenProcess(1, 0, pid)
-        if (0 == kernel32.TerminateProcess(handle, 0)):
-            raise OSError('No such process %s' % pid)
+        if 0 == kernel32.TerminateProcess(handle, 0):
+            raise OSError("No such process %s" % pid)
 else:
     kill = os.kill
 
@@ -49,99 +48,124 @@ class DaemonizeException(Exception):
 
 
 class ServeCommand(Command):
-    _scheme_re = re.compile(r'^[a-z][a-z]+:', re.I)
+    _scheme_re = re.compile(r"^[a-z][a-z]+:", re.I)
 
-    _monitor_environ_key = 'PASTE_MONITOR_SHOULD_RUN'
+    _monitor_environ_key = "PASTE_MONITOR_SHOULD_RUN"
 
-    possible_subcommands = ('start', 'stop', 'restart', 'status')
+    possible_subcommands = ("start", "stop", "restart", "status")
 
     def get_parser(self, prog_name):
         parser = super(ServeCommand, self).get_parser(prog_name)
 
-        parser.add_argument("-c", "--config",
-            help='application config file to read (default: development.ini)',
-            dest='config_file', default="development.ini")
+        parser.add_argument(
+            "-c",
+            "--config",
+            help="application config file to read (default: development.ini)",
+            dest="config_file",
+            default="development.ini",
+        )
 
         parser.add_argument(
-            '-n', '--app-name',
-            dest='app_name',
-            metavar='NAME',
-            help="Load the named application (default main)")
+            "-n",
+            "--app-name",
+            dest="app_name",
+            metavar="NAME",
+            help="Load the named application (default main)",
+        )
         parser.add_argument(
-            '-s', '--server',
-            dest='server',
-            metavar='SERVER_TYPE',
-            help="Use the named server.")
+            "-s",
+            "--server",
+            dest="server",
+            metavar="SERVER_TYPE",
+            help="Use the named server.",
+        )
         parser.add_argument(
-            '--server-name',
-            dest='server_name',
-            metavar='SECTION_NAME',
-            help=("Use the named server as defined in the configuration file "
-                  "(default: main)"))
-        if hasattr(os, 'fork'):
+            "--server-name",
+            dest="server_name",
+            metavar="SECTION_NAME",
+            help=(
+                "Use the named server as defined in the configuration file "
+                "(default: main)"
+            ),
+        )
+        if hasattr(os, "fork"):
             parser.add_argument(
-                '--daemon',
+                "--daemon",
                 dest="daemon",
                 action="store_true",
-                help="Run in daemon (background) mode")
+                help="Run in daemon (background) mode",
+            )
         parser.add_argument(
-            '--pid-file',
-            dest='pid_file',
-            metavar='FILENAME',
-            help=("Save PID to file (default to gearbox.pid if running in "
-                  "daemon mode)"))
+            "--pid-file",
+            dest="pid_file",
+            metavar="FILENAME",
+            help=(
+                "Save PID to file (default to gearbox.pid if running in daemon mode)"
+            ),
+        )
         parser.add_argument(
-            '--reload',
-            dest='reload',
-            action='store_true',
-            help="Use auto-restart file monitor")
+            "--reload",
+            dest="reload",
+            action="store_true",
+            help="Use auto-restart file monitor",
+        )
         parser.add_argument(
-            '--reload-interval',
-            dest='reload_interval',
+            "--reload-interval",
+            dest="reload_interval",
             default=1,
-            help=("Seconds between checking files (low number can cause "
-                  "significant CPU usage)"))
+            help=(
+                "Seconds between checking files (low number can cause "
+                "significant CPU usage)"
+            ),
+        )
         parser.add_argument(
-            '--monitor-restart',
-            dest='monitor_restart',
-            action='store_true',
-            help="Auto-restart server if it dies")
+            "--monitor-restart",
+            dest="monitor_restart",
+            action="store_true",
+            help="Auto-restart server if it dies",
+        )
         parser.add_argument(
-            '--status',
-            action='store_true',
-            dest='show_status',
-            help="Show the status of the (presumably daemonized) server")
+            "--status",
+            action="store_true",
+            dest="show_status",
+            help="Show the status of the (presumably daemonized) server",
+        )
 
-        if hasattr(os, 'setuid'):
+        if hasattr(os, "setuid"):
             # I don't think these are available on Windows
             parser.add_argument(
-                '--user',
-                dest='set_user',
+                "--user",
+                dest="set_user",
                 metavar="USERNAME",
-                help="Set the user (usually only possible when run as root)")
+                help="Set the user (usually only possible when run as root)",
+            )
             parser.add_argument(
-                '--group',
-                dest='set_group',
+                "--group",
+                dest="set_group",
                 metavar="GROUP",
-                help="Set the group (usually only possible when run as root)")
-    
-        parser.add_argument(
-            '--stop-daemon',
-            dest='stop_daemon',
-            action='store_true',
-            help=('Stop a daemonized server (given a PID file, or default '
-                  'gearbox.pid file)'))
+                help="Set the group (usually only possible when run as root)",
+            )
 
-        parser.add_argument('args', nargs='*')
+        parser.add_argument(
+            "--stop-daemon",
+            dest="stop_daemon",
+            action="store_true",
+            help=(
+                "Stop a daemonized server (given a PID file, or default "
+                "gearbox.pid file)"
+            ),
+        )
+
+        parser.add_argument("args", nargs="*")
 
         return parser
 
     def get_description(self):
-        return 'Serves a web application that uses a PasteDeploy configuration file'
+        return "Serves a web application that uses a PasteDeploy configuration file"
 
     @classmethod
-    def out(cls, msg, error=False): # pragma: no cover
-        log = logging.getLogger('gearbox')
+    def out(cls, msg, error=False):  # pragma: no cover
+        log = logging.getLogger("gearbox")
         if error:
             log.error(msg)
         else:
@@ -151,7 +175,7 @@ class ServeCommand(Command):
         if opts.stop_daemon:
             return self.stop_daemon(opts)
 
-        if not hasattr(opts, 'set_user'):
+        if not hasattr(opts, "set_user"):
             # Windows case:
             opts.set_user = opts.set_group = None
 
@@ -168,15 +192,15 @@ class ServeCommand(Command):
             cmd = None
             restvars = opts.args[0:]
 
-        if cmd not in (None, 'start', 'stop', 'restart', 'status'):
-            self.out('Error: must give start|stop|restart (not %s)' % cmd)
+        if cmd not in (None, "start", "stop", "restart", "status"):
+            self.out("Error: must give start|stop|restart (not %s)" % cmd)
             return 2
 
-        if cmd == 'status' or opts.show_status:
+        if cmd == "status" or opts.show_status:
             return self.show_status(opts)
 
         if opts.monitor_restart and opts.reload:
-            self.out('Cannot user --monitor-restart with --reload')
+            self.out("Cannot user --monitor-restart with --reload")
             return 2
 
         if opts.monitor_restart and not os.environ.get(self._monitor_environ_key):
@@ -186,14 +210,14 @@ class ServeCommand(Command):
 
         if opts.reload and not hupper.is_active():
             if self.verbose > 1:
-                self.out('Running reloading file monitor')
+                self.out("Running reloading file monitor")
             reloader = hupper.reloader.Reloader(
-                worker_path='gearbox.main.main',
+                worker_path="gearbox.main.main",
                 reload_interval=opts.reload_interval,
                 monitor_factory=hupper.reloader.find_default_monitor_factory(
-                    logging.getLogger('gearbox')
+                    logging.getLogger("gearbox")
                 ),
-                logger=logging.getLogger('gearbox'),
+                logger=logging.getLogger("gearbox"),
             )
             reloader.run()
 
@@ -201,48 +225,48 @@ class ServeCommand(Command):
             # Tack also config file changes
             hupper.get_reloader().watch_files([opts.config_file])
 
-        if cmd == 'restart' or cmd == 'stop':
+        if cmd == "restart" or cmd == "stop":
             result = self.stop_daemon(opts)
             if result:
-                if cmd == 'restart':
+                if cmd == "restart":
                     self.out("Could not stop daemon; aborting")
                 else:
                     self.out("Could not stop daemon")
                 return result
-            if cmd == 'stop':
+            if cmd == "stop":
                 return result
             opts.daemon = True
 
-        if cmd == 'start':
+        if cmd == "start":
             opts.daemon = True
 
         app_name = opts.app_name
         parsed_vars = self.parse_vars(restvars)
         if not self._scheme_re.search(app_spec):
-            app_spec = 'config:' + app_spec
+            app_spec = "config:" + app_spec
         server_name = opts.server_name
         if opts.server:
-            server_spec = 'egg:gearbox'
+            server_spec = "egg:gearbox"
             assert server_name is None
             server_name = opts.server
         else:
             server_spec = app_spec
         base = os.getcwd()
 
-        if getattr(opts, 'daemon', False):
+        if getattr(opts, "daemon", False):
             if not opts.pid_file:
-                opts.pid_file = 'gearbox.pid'
+                opts.pid_file = "gearbox.pid"
 
         # Ensure the pid file is writeable
         if opts.pid_file:
             try:
-                writeable_pid_file = open(opts.pid_file, 'a')
+                writeable_pid_file = open(opts.pid_file, "a")
             except IOError as ioe:
-                msg = 'Error: Unable to write to pid file: %s' % ioe
+                msg = "Error: Unable to write to pid file: %s" % ioe
                 raise ValueError(msg)
             writeable_pid_file.close()
 
-        if getattr(opts, 'daemon', False):
+        if getattr(opts, "daemon", False):
             try:
                 self.daemonize(opts)
             except DaemonizeException as ex:
@@ -254,21 +278,22 @@ class ServeCommand(Command):
             self.record_pid(opts.pid_file)
 
         log_fn = app_spec
-        if log_fn.startswith('config:'):
-            log_fn = app_spec[len('config:'):]
-        elif log_fn.startswith('egg:'):
+        if log_fn.startswith("config:"):
+            log_fn = app_spec[len("config:") :]
+        elif log_fn.startswith("egg:"):
             log_fn = None
 
         if self.app.options.log_file:
-            stdout_log = LazyWriter(self.app.options.log_file, 'a')
+            stdout_log = LazyWriter(self.app.options.log_file, "a")
             sys.stdout = stdout_log
             sys.stderr = stdout_log
 
         try:
-            server = self.loadserver(server_spec, name=server_name,
-                                     relative_to=base, global_conf=parsed_vars)
+            server = self.loadserver(
+                server_spec, name=server_name, relative_to=base, global_conf=parsed_vars
+            )
         except Exception:
-            self.out('Failed to load server', error=True)
+            self.out("Failed to load server", error=True)
             raise
 
         if log_fn:
@@ -276,17 +301,18 @@ class ServeCommand(Command):
             setup_logging(log_fn)
 
         try:
-            app = self.loadapp(app_spec, name=app_name,
-                               relative_to=base, global_conf=parsed_vars)
+            app = self.loadapp(
+                app_spec, name=app_name, relative_to=base, global_conf=parsed_vars
+            )
         except Exception:
-            self.out('Failed to load application', error=True)
+            self.out("Failed to load application", error=True)
             raise
 
         if self.verbose > 0:
-            if hasattr(os, 'getpid'):
-                msg = 'Starting server in PID %i.' % os.getpid()
+            if hasattr(os, "getpid"):
+                msg = "Starting server in PID %i." % os.getpid()
             else:
-                msg = 'Starting server.'
+                msg = "Starting server."
             self.out(msg)
 
         def serve():
@@ -296,18 +322,17 @@ class ServeCommand(Command):
                 if self.verbose > 1:
                     raise
                 if str(e):
-                    msg = ' ' + str(e)
+                    msg = " " + str(e)
                 else:
-                    msg = ''
-                self.out('Exiting%s (-v to see traceback)' % msg)
+                    msg = ""
+                self.out("Exiting%s (-v to see traceback)" % msg)
 
         serve()
 
-    def loadserver(self, server_spec, name, relative_to, **kw):# pragma:no cover
-        return loadserver(
-            server_spec, name=name, relative_to=relative_to, **kw)
+    def loadserver(self, server_spec, name, relative_to, **kw):  # pragma:no cover
+        return loadserver(server_spec, name=name, relative_to=relative_to, **kw)
 
-    def loadapp(self, app_spec, name, relative_to, **kw): # pragma: no cover
+    def loadapp(self, app_spec, name, relative_to, **kw):  # pragma: no cover
         return loadapp(app_spec, name=name, relative_to=relative_to, **kw)
 
     def parse_vars(self, args):
@@ -317,11 +342,9 @@ class ServeCommand(Command):
         """
         result = {}
         for arg in args:
-            if '=' not in arg:
-                raise ValueError(
-                    'Variable assignment %r invalid (no "=")'
-                    % arg)
-            name, value = arg.split('=', 1)
+            if "=" not in arg:
+                raise ValueError('Variable assignment %r invalid (no "=")' % arg)
+            name, value = arg.split("=", 1)
             result[name] = value
         return result
 
@@ -343,19 +366,20 @@ class ServeCommand(Command):
 
         """
         argv = sys.argv[:]
-        if sys.platform == 'win32' and argv[0].endswith('.py'):
+        if sys.platform == "win32" and argv[0].endswith(".py"):
             argv.insert(0, sys.executable)
         return argv
 
-    def daemonize(self, opts): # pragma: no cover
+    def daemonize(self, opts):  # pragma: no cover
         pid = live_pidfile(opts.pid_file)
         if pid:
             raise DaemonizeException(
                 "Daemon is already running (PID: %s from PID file %s)"
-                % (pid, opts.pid_file))
+                % (pid, opts.pid_file)
+            )
 
         if self.verbose > 0:
-            self.out('Entering daemon mode')
+            self.out("Entering daemon mode")
         pid = os.fork()
         if pid:
             # The forked process also has a handle on resources, so we
@@ -372,8 +396,9 @@ class ServeCommand(Command):
         # @@: Should we set the umask and cwd now?
 
         import resource  # Resource usage information.
+
         maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
-        if (maxfd == resource.RLIM_INFINITY):
+        if maxfd == resource.RLIM_INFINITY:
             maxfd = MAXFD
             # Iterate through and close all file descriptors.
         for fd in range(0, maxfd):
@@ -382,7 +407,7 @@ class ServeCommand(Command):
             except OSError:  # ERROR, fd wasn't open to begin with (ignored)
                 pass
 
-        if (hasattr(os, "devnull")):
+        if hasattr(os, "devnull"):
             REDIRECT_TO = os.devnull
         else:
             REDIRECT_TO = "/dev/null"
@@ -420,25 +445,25 @@ class ServeCommand(Command):
             self.out("Cannot remove PID file: (%s)" % e)
             # well, at least lets not leave the invalid PID around...
         try:
-            with open(filename, 'w') as f:
-                f.write('')
+            with open(filename, "w") as f:
+                f.write("")
         except OSError as e:
-            self.out('Stale PID left in file: %s (%s)' % (filename, e))
+            self.out("Stale PID left in file: %s (%s)" % (filename, e))
         else:
-            self.out('Stale PID removed')
+            self.out("Stale PID removed")
 
     def record_pid(self, pid_file):
         pid = os.getpid()
         if self.verbose > 1:
-            self.out('Writing PID %s to %s' % (pid, pid_file))
-        with open(pid_file, 'w') as f:
+            self.out("Writing PID %s to %s" % (pid, pid_file))
+        with open(pid_file, "w") as f:
             f.write(str(pid))
         atexit.register(self._remove_pid_file, pid, pid_file, self.verbose)
 
-    def stop_daemon(self, opts): # pragma: no cover
-        pid_file = opts.pid_file or 'gearbox.pid'
+    def stop_daemon(self, opts):  # pragma: no cover
+        pid_file = opts.pid_file or "gearbox.pid"
         if not os.path.exists(pid_file):
-            self.out('No PID file exists in %s' % pid_file)
+            self.out("No PID file exists in %s" % pid_file)
             return 1
         pid = read_pidfile(pid_file)
         if not pid:
@@ -457,6 +482,7 @@ class ServeCommand(Command):
             if not live_pidfile(pid_file):
                 break
             import signal
+
             kill(pid, signal.SIGTERM)
             time.sleep(1)
         else:
@@ -466,57 +492,59 @@ class ServeCommand(Command):
             os.unlink(pid_file)
         return 0
 
-    def show_status(self, opts): # pragma: no cover
-        pid_file = opts.pid_file or 'gearbox.pid'
+    def show_status(self, opts):  # pragma: no cover
+        pid_file = opts.pid_file or "gearbox.pid"
         if not os.path.exists(pid_file):
-            self.out('No PID file %s' % pid_file)
+            self.out("No PID file %s" % pid_file)
             return 1
         pid = read_pidfile(pid_file)
         if not pid:
-            self.out('No PID in file %s' % pid_file)
+            self.out("No PID in file %s" % pid_file)
             return 1
         pid = live_pidfile(pid_file)
         if not pid:
-            self.out('PID %s in %s is not running' % (pid, pid_file))
+            self.out("PID %s in %s is not running" % (pid, pid_file))
             return 1
-        self.out('Server running in PID %s' % pid)
+        self.out("Server running in PID %s" % pid)
         return 0
 
     def restart_with_monitor(self):  # pragma: no cover
         if self.verbose > 0:
-            self.out('Starting subprocess with angel')
+            self.out("Starting subprocess with angel")
 
         while 1:
             args = self.get_fixed_argv()
             new_environ = os.environ.copy()
-            new_environ[self._monitor_environ_key] = 'true'
+            new_environ[self._monitor_environ_key] = "true"
             proc = None
             try:
                 try:
                     _turn_sigterm_into_systemexit()
                     proc = subprocess.Popen(args, env=new_environ)
-                    exit_code = proc.wait()
                     proc = None
                 except KeyboardInterrupt:
-                    self.out('^C caught in monitor process')
+                    self.out("^C caught in monitor process")
                     if self.verbose > 1:
                         raise
                     return 1
             finally:
                 if proc is not None:
                     import signal
+
                     try:
                         kill(proc.pid, signal.SIGTERM)
                     except (OSError, IOError):
                         pass
 
             if self.verbose > 0:
-                self.out('%s %s %s' % ('-' * 20, 'Server died, restarting', '-' * 20))
+                self.out("%s %s %s" % ("-" * 20, "Server died, restarting", "-" * 20))
 
-    def change_user_group(self, user, group): # pragma: no cover
+    def change_user_group(self, user, group):  # pragma: no cover
         if not user and not group:
             return
-        import pwd, grp
+        import grp
+        import pwd
+
         uid = gid = None
         if group:
             try:
@@ -524,11 +552,11 @@ class ServeCommand(Command):
                 group = grp.getgrgid(gid).gr_name
             except ValueError:
                 import grp
+
                 try:
                     entry = grp.getgrnam(group)
                 except KeyError:
-                    raise ValueError(
-                        "Bad group: %r; no such group exists" % group)
+                    raise ValueError("Bad group: %r; no such group exists" % group)
                 gid = entry.gr_gid
         try:
             uid = int(user)
@@ -537,14 +565,15 @@ class ServeCommand(Command):
             try:
                 entry = pwd.getpwnam(user)
             except KeyError:
-                raise ValueError(
-                    "Bad username: %r; no such user exists" % user)
+                raise ValueError("Bad username: %r; no such user exists" % user)
             if not gid:
                 gid = entry.pw_gid
             uid = entry.pw_uid
         if self.verbose > 0:
-            self.out('Changing user to %s:%s (%s:%s)' % (
-                user, group or '(unknown)', uid, gid))
+            self.out(
+                "Changing user to %s:%s (%s:%s)"
+                % (user, group or "(unknown)", uid, gid)
+            )
         if gid:
             os.setgid(gid)
         if uid:
@@ -552,13 +581,12 @@ class ServeCommand(Command):
 
 
 class LazyWriter(object):
-
     """
     File-like object that opens a file lazily when it is first written
     to.
     """
 
-    def __init__(self, filename, mode='w'):
+    def __init__(self, filename, mode="w"):
         self.filename = filename
         self.fileobj = None
         self.lock = threading.Lock()
@@ -592,7 +620,7 @@ class LazyWriter(object):
         self.open().flush()
 
 
-def live_pidfile(pidfile): # pragma: no cover
+def live_pidfile(pidfile):  # pragma: no cover
     """(pidfile:str) -> int | None
     Returns an int found in the named file, if there is one,
     and if there is a running process with that process id.
@@ -621,7 +649,7 @@ def read_pidfile(filename):
         return None
 
 
-def _turn_sigterm_into_systemexit(): # pragma: no cover
+def _turn_sigterm_into_systemexit():  # pragma: no cover
     """
     Attempts to turn a SIGTERM exception into a SystemExit exception.
     """
@@ -629,13 +657,15 @@ def _turn_sigterm_into_systemexit(): # pragma: no cover
         import signal
     except ImportError:
         return
+
     def handle_term(signo, frame):
         raise SystemExit
+
     signal.signal(signal.SIGTERM, handle_term)
 
 
 # For paste.deploy server instantiation (egg:gearbox#wsgiref)
-def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
+def wsgiref_server_runner(wsgi_app, global_conf, **kw):  # pragma: no cover
     """
     Entry point for wsgiref's WSGI server
 
@@ -655,16 +685,16 @@ def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
         The file names should contain full paths.
 
     """
-    from wsgiref.simple_server import make_server, WSGIServer
+    from wsgiref.simple_server import WSGIServer, make_server
 
-    host = kw.get('host', '0.0.0.0')
-    port = int(kw.get('port', 8080))
-    threaded = asbool(kw.get('wsgiref.threaded', False))
+    host = kw.get("host", "0.0.0.0")
+    port = int(kw.get("port", 8080))
+    threaded = asbool(kw.get("wsgiref.threaded", False))
 
     server_class = WSGIServer
-    certfile = kw.get('wsgiref.certfile')
-    keyfile = kw.get('wsgiref.keyfile')
-    scheme = 'http'
+    certfile = kw.get("wsgiref.certfile")
+    keyfile = kw.get("wsgiref.keyfile")
+    scheme = "http"
 
     if certfile and keyfile:
         """
@@ -675,17 +705,16 @@ def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
         url='http://wol.ph/',
         """
         import ssl
-        class SecureWSGIServer(WSGIServer):
 
+        class SecureWSGIServer(WSGIServer):
             def get_request(self):
                 socket, client_address = WSGIServer.get_request(self)
-                socket = ssl.wrap_socket(socket,
-                                         server_side=True,
-                                         certfile=certfile,
-                                         keyfile=keyfile)
+                socket = ssl.wrap_socket(
+                    socket, server_side=True, certfile=certfile, keyfile=keyfile
+                )
                 return socket, client_address
 
-        port = int(kw.get('port', 4443))
+        port = int(kw.get("port", 4443))
         server_class = SecureWSGIServer
 
     if threaded:
@@ -693,36 +722,46 @@ def wsgiref_server_runner(wsgi_app, global_conf, **kw): # pragma: no cover
             from socketserver import ThreadingMixIn
         except ImportError:
             from SocketServer import ThreadingMixIn
-        class GearboxWSGIServer(ThreadingMixIn, server_class): pass
-        server_type = 'Threaded'
+
+        class GearboxWSGIServer(ThreadingMixIn, server_class):
+            pass
+
+        server_type = "Threaded"
     else:
-        class GearboxWSGIServer(server_class): pass
-        server_type = 'Standard'
+
+        class GearboxWSGIServer(server_class):
+            pass
+
+        server_type = "Standard"
 
     server = make_server(host, port, wsgi_app, server_class=GearboxWSGIServer)
     if certfile and keyfile:
-        server_type += ' Secure'
-        scheme += 's'
-    ServeCommand.out('Starting %s HTTP server on %s://%s:%s' % (server_type, scheme, host, port))
+        server_type += " Secure"
+        scheme += "s"
+    ServeCommand.out(
+        "Starting %s HTTP server on %s://%s:%s" % (server_type, scheme, host, port)
+    )
     server.serve_forever()
 
 
 # For paste.deploy server instantiation (egg:gearbox#gevent)
 def gevent_server_factory(global_config, **kw):
     from gevent import reinit
+
     try:
         from gevent.pywsgi import WSGIServer
     except ImportError:
         from gevent.wsgi import WSGIServer
     from gevent.monkey import patch_all
+
     reinit()
     patch_all(dns=False)
-    
-    host = kw.get('host', '0.0.0.0')
-    port = int(kw.get('port', 8080))
+
+    host = kw.get("host", "0.0.0.0")
+    port = int(kw.get("port", 8080))
 
     def _gevent_serve(wsgi_app):
-        ServeCommand.out('Starting Gevent HTTP server on http://%s:%s' % (host, port))
+        ServeCommand.out("Starting Gevent HTTP server on http://%s:%s" % (host, port))
         WSGIServer((host, port), wsgi_app).serve_forever()
 
     return _gevent_serve
@@ -730,11 +769,18 @@ def gevent_server_factory(global_config, **kw):
 
 # For paste.deploy server instantiation (egg:gearbox#cherrypy)
 def cherrypy_server_runner(
-        app, global_conf=None, host='127.0.0.1', port=None,
-        ssl_pem=None, protocol_version=None, numthreads=None,
-        server_name=None, max=None, request_queue_size=None,
-        timeout=None
-): # pragma: no cover
+    app,
+    global_conf=None,
+    host="127.0.0.1",
+    port=None,
+    ssl_pem=None,
+    protocol_version=None,
+    numthreads=None,
+    server_name=None,
+    max=None,
+    request_queue_size=None,
+    timeout=None,
+):  # pragma: no cover
     """
     Entry point for CherryPy's WSGI server
 
@@ -800,14 +846,14 @@ def cherrypy_server_runner(
         is_ssl = True
 
     if not port:
-        if ':' in host:
-            host, port = host.split(':', 1)
+        if ":" in host:
+            host, port = host.split(":", 1)
         else:
             port = 8080
     bind_addr = (host, int(port))
 
     kwargs = {}
-    for var_name in ('numthreads', 'max', 'request_queue_size', 'timeout'):
+    for var_name in ("numthreads", "max", "request_queue_size", "timeout"):
         var = locals()[var_name]
         if var is not None:
             kwargs[var_name] = int(var)
@@ -816,26 +862,30 @@ def cherrypy_server_runner(
     try:
         # Try to import from newer CherryPy releases.
         import cheroot.wsgi as wsgiserver
-        server = wsgiserver.Server(bind_addr, app,
-            server_name=server_name, **kwargs)
+
+        server = wsgiserver.Server(bind_addr, app, server_name=server_name, **kwargs)
     except ImportError:
         # Nope. Try to import from older CherryPy releases.
         # We might just take another ImportError here. Oh well.
         from cherrypy import wsgiserver
-        server = wsgiserver.CherryPyWSGIServer(bind_addr, app,
-            server_name=server_name, **kwargs)
+
+        server = wsgiserver.CherryPyWSGIServer(
+            bind_addr, app, server_name=server_name, **kwargs
+        )
 
     server.ssl_certificate = server.ssl_private_key = ssl_pem
     if protocol_version:
         server.protocol = protocol_version
 
     try:
-        protocol = is_ssl and 'https' or 'http'
-        if host == '0.0.0.0':
-            print('serving on 0.0.0.0:%s view at %s://127.0.0.1:%s' %
-                  (port, protocol, port))
+        protocol = is_ssl and "https" or "http"
+        if host == "0.0.0.0":
+            print(
+                "serving on 0.0.0.0:%s view at %s://127.0.0.1:%s"
+                % (port, protocol, port)
+            )
         else:
-            print('serving on %s://%s:%s' % (protocol, host, port))
+            print("serving on %s://%s:%s" % (protocol, host, port))
         server.start()
     except (KeyboardInterrupt, SystemExit):
         server.stop()

@@ -5,32 +5,31 @@
 import os
 import sys
 
-if sys.version_info[0] == 3: # pragma: no cover
-    input_ = input
-    text_type = str
 
-    def native_(s, encoding='latin-1', errors='strict'):
-        """ If ``s`` is an instance of ``text_type``, return
-        ``s``, otherwise return ``str(s, encoding, errors)``"""
-        if isinstance(s, text_type):
-            return s
-        return str(s, encoding, errors)
-else:
-    input_ = raw_input
-    text_type = unicode
+def native_(s, encoding="latin-1", errors="strict"):
+    """If ``s`` is an instance of ``str``, return
+    ``s``, otherwise return ``str(s, encoding, errors)``"""
+    if isinstance(s, str):
+        return s
+    return str(s, encoding, errors)
 
-    def native_(s, encoding='latin-1', errors='strict'):
-        """ If ``s`` is an instance of ``text_type``, return
-        ``s.encode(encoding, errors)``, otherwise return ``str(s)``"""
-        if isinstance(s, text_type):
-            return s.encode(encoding, errors)
-        return str(s)
 
 fsenc = sys.getfilesystemencoding()
 
-def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
-             sub_vars=True, interactive=False, overwrite=True,
-             template_renderer=None, out_=sys.stdout):
+
+def copy_dir(
+    source,
+    dest,
+    vars,
+    verbosity=1,
+    simulate=False,
+    indent=0,
+    sub_vars=True,
+    interactive=False,
+    overwrite=True,
+    template_renderer=None,
+    out_=sys.stdout,
+):
     """
     Copies the ``source`` directory to the ``dest`` directory.
 
@@ -55,85 +54,96 @@ def copy_dir(source, dest, vars, verbosity=1, simulate=False, indent=0,
     ``template_renderer(content_as_string, vars_as_dict,
     filename=filename)``.
     """
+
     def out(msg):
         out_.write(msg)
-        out_.write('\n')
+        out_.write("\n")
         out_.flush()
         # This allows you to use a leading +dot+ in filenames which would
+
     # otherwise be skipped because leading dots make the file hidden:
-    vars.setdefault('dot', '.')
-    vars.setdefault('plus', '+')
+    vars.setdefault("dot", ".")
+    vars.setdefault("plus", "+")
     names = sorted(os.listdir(source))
-    pad = ' '*(indent*2)
+    pad = " " * (indent * 2)
     if not os.path.exists(dest):
         if verbosity >= 1:
-            out('%sCreating %s/' % (pad, dest))
+            out("%sCreating %s/" % (pad, dest))
         if not simulate:
             makedirs(dest, verbosity=verbosity, pad=pad)
     elif verbosity >= 2:
-        out('%sDirectory %s exists' % (pad, dest))
+        out("%sDirectory %s exists" % (pad, dest))
     for name in names:
         full = os.path.join(source, name)
         reason = should_skip_file(name)
         if reason:
             if verbosity >= 2:
-                reason = pad + reason % {'filename': full}
+                reason = pad + reason % {"filename": full}
                 out(reason)
-            continue # pragma: no cover
+            continue  # pragma: no cover
         if sub_vars:
             dest_full = os.path.join(dest, substitute_filename(name, vars))
         sub_file = False
-        if dest_full.endswith('_tmpl'):
+        if dest_full.endswith("_tmpl"):
             dest_full = dest_full[:-5]
             sub_file = sub_vars
         if os.path.isdir(full):
             if verbosity:
-                out('%sRecursing into %s' % (pad, os.path.basename(full)))
-            copy_dir(full, dest_full, vars, verbosity, simulate,
-                indent=indent+1,
-                sub_vars=sub_vars, interactive=interactive,
-                template_renderer=template_renderer, out_=out_)
+                out("%sRecursing into %s" % (pad, os.path.basename(full)))
+            copy_dir(
+                full,
+                dest_full,
+                vars,
+                verbosity,
+                simulate,
+                indent=indent + 1,
+                sub_vars=sub_vars,
+                interactive=interactive,
+                template_renderer=template_renderer,
+                out_=out_,
+            )
             continue
         else:
-            f = open(full, 'rb')
+            f = open(full, "rb")
             content = f.read()
             f.close()
         if sub_file:
             try:
                 content = substitute_content(
-                    content, vars, filename=full,
-                    template_renderer=template_renderer
+                    content, vars, filename=full, template_renderer=template_renderer
                 )
             except SkipTemplate:
-                continue # pragma: no cover
+                continue  # pragma: no cover
             if content is None:
                 continue  # pragma: no cover
         already_exists = os.path.exists(dest_full)
         if already_exists:
-            f = open(dest_full, 'rb')
+            f = open(dest_full, "rb")
             old_content = f.read()
             f.close()
             if old_content == content:
                 if verbosity:
-                    out('%s%s already exists (same content)' %
-                        (pad, dest_full))
-                continue # pragma: no cover
+                    out("%s%s already exists (same content)" % (pad, dest_full))
+                continue  # pragma: no cover
             if interactive:
                 if not query_interactive(
-                    native_(full, fsenc), native_(dest_full, fsenc),
-                    native_(content, fsenc), native_(old_content, fsenc),
-                    simulate=simulate, out_=out_):
+                    native_(full, fsenc),
+                    native_(dest_full, fsenc),
+                    native_(content, fsenc),
+                    native_(old_content, fsenc),
+                    simulate=simulate,
+                    out_=out_,
+                ):
                     continue
             elif not overwrite:
-                continue # pragma: no cover
+                continue  # pragma: no cover
         if verbosity:
-            out(
-                '%sCopying %s to %s' % (pad, os.path.basename(full),
-                                        dest_full))
+            out("%sCopying %s to %s" % (pad, os.path.basename(full), dest_full))
         if not simulate:
-            f = open(dest_full, 'wb')
+            f = open(dest_full, "wb")
             f.write(content)
             f.close()
+
 
 class SkipTemplate(Exception):
     """
@@ -148,16 +158,20 @@ def makedirs(dir, verbosity, pad):
         makedirs(parent, verbosity, pad)
     os.mkdir(dir)
 
+
 def substitute_filename(fn, vars):
     for var, value in vars.items():
-        fn = fn.replace('+%s+' % var, str(value))
+        fn = fn.replace("+%s+" % var, str(value))
     return fn
 
-def substitute_content(content, vars, filename='<string>',
-                       template_renderer=None):
+
+def substitute_content(content, vars, filename="<string>", template_renderer=None):
     v = standard_vars.copy()
     v.update(vars)
-    return template_renderer(content.decode('utf-8'), v, filename=filename).encode('utf-8')
+    return template_renderer(content.decode("utf-8"), v, filename=filename).encode(
+        "utf-8"
+    )
+
 
 def should_skip_file(name):
     """
@@ -166,83 +180,109 @@ def should_skip_file(name):
     If it should be skipped, returns the reason, otherwise returns
     None.
     """
-    if name.startswith('.'):
-        return 'Skipping hidden file %(filename)s'
-    if name.endswith('~') or name.endswith('.bak'):
-        return 'Skipping backup file %(filename)s'
-    if name.endswith('.pyc') or name.endswith('.pyo'):
-        return 'Skipping %s file ' % os.path.splitext(name)[1] + '%(filename)s'
-    if name.endswith('$py.class'):
-        return 'Skipping $py.class file %(filename)s'
-    if name in ('CVS', '_darcs'):
-        return 'Skipping version control directory %(filename)s'
+    if name.startswith("."):
+        return "Skipping hidden file %(filename)s"
+    if name.endswith("~") or name.endswith(".bak"):
+        return "Skipping backup file %(filename)s"
+    if name.endswith(".pyc") or name.endswith(".pyo"):
+        return "Skipping %s file " % os.path.splitext(name)[1] + "%(filename)s"
+    if name.endswith("$py.class"):
+        return "Skipping $py.class file %(filename)s"
+    if name in ("CVS", "_darcs"):
+        return "Skipping version control directory %(filename)s"
     return None
+
 
 # Overridden on user's request:
 all_answer = None
 
-def query_interactive(src_fn, dest_fn, src_content, dest_content,
-                      simulate, out_=sys.stdout):
+
+def query_interactive(
+    src_fn, dest_fn, src_content, dest_content, simulate, out_=sys.stdout
+):
     def out(msg):
         out_.write(msg)
-        out_.write('\n')
+        out_.write("\n")
         out_.flush()
+
     global all_answer
-    from difflib import unified_diff, context_diff
-    u_diff = list(unified_diff(
-        dest_content.splitlines(),
-        src_content.splitlines(),
-        dest_fn, src_fn))
-    c_diff = list(context_diff(
-        dest_content.splitlines(),
-        src_content.splitlines(),
-        dest_fn, src_fn))
-    added = len([l for l in u_diff if l.startswith('+')
-    and not l.startswith('+++')])
-    removed = len([l for l in u_diff if l.startswith('-')
-    and not l.startswith('---')])
+    from difflib import context_diff, unified_diff
+
+    u_diff = list(
+        unified_diff(
+            dest_content.splitlines(), src_content.splitlines(), dest_fn, src_fn
+        )
+    )
+    c_diff = list(
+        context_diff(
+            dest_content.splitlines(), src_content.splitlines(), dest_fn, src_fn
+        )
+    )
+    added = len(
+        [
+            l_added
+            for l_added in u_diff
+            if l_added.startswith("+") and not l_added.startswith("+++")
+        ]
+    )
+    removed = len(
+        [
+            l_removed
+            for l_removed in u_diff
+            if l_removed.startswith("-") and not l_removed.startswith("---")
+        ]
+    )
     if added > removed:
-        msg = '; %i lines added' % (added-removed)
+        msg = "; %i lines added" % (added - removed)
     elif removed > added:
-        msg = '; %i lines removed' % (removed-added)
+        msg = "; %i lines removed" % (removed - added)
     else:
-        msg = ''
-    out('Replace %i bytes with %i bytes (%i/%i lines changed%s)' % (
-        len(dest_content), len(src_content),
-        removed, len(dest_content.splitlines()), msg))
-    prompt = 'Overwrite %s [y/n/d/B/?] ' % dest_fn
+        msg = ""
+    out(
+        "Replace %i bytes with %i bytes (%i/%i lines changed%s)"
+        % (
+            len(dest_content),
+            len(src_content),
+            removed,
+            len(dest_content.splitlines()),
+            msg,
+        )
+    )
+    prompt = "Overwrite %s [y/n/d/B/?] " % dest_fn
     while 1:
         if all_answer is None:
-            response = input_(prompt).strip().lower()
+            response = input(prompt).strip().lower()
         else:
             response = all_answer
-        if not response or response[0] == 'b':
+        if not response or response[0] == "b":
             import shutil
-            new_dest_fn = dest_fn + '.bak'
+
+            new_dest_fn = dest_fn + ".bak"
             n = 0
             while os.path.exists(new_dest_fn):
                 n += 1
-                new_dest_fn = dest_fn + '.bak' + str(n)
-            out('Backing up %s to %s' % (dest_fn, new_dest_fn))
+                new_dest_fn = dest_fn + ".bak" + str(n)
+            out("Backing up %s to %s" % (dest_fn, new_dest_fn))
             if not simulate:
                 shutil.copyfile(dest_fn, new_dest_fn)
             return True
-        elif response.startswith('all '):
+        elif response.startswith("all "):
             rest = response[4:].strip()
-            if not rest or rest[0] not in ('y', 'n', 'b'):
+            if not rest or rest[0] not in ("y", "n", "b"):
                 out(query_usage)
                 continue
             response = all_answer = rest[0]
-        if response[0] == 'y':
+        if response[0] == "y":
             return True
-        elif response[0] == 'n':
+        elif response[0] == "n":
             return False
-        elif response == 'dc':
-            out('\n'.join(c_diff))
-        elif response[0] == 'd':
-            out('\n'.join(u_diff))
+        elif response == "dc":
+            out("\n".join(c_diff))
+        elif response[0] == "d":
+            out("\n".join(u_diff))
         else:
             out(query_usage)
+
 
 query_usage = """\
 Responses:
@@ -255,10 +295,10 @@ Responses:
 """
 
 standard_vars = {
-    'nothing': None,
-    'empty': '""',
-    'repr': repr,
-    'str': str,
-    'bool': bool,
-    'SkipTemplate': SkipTemplate,
-    }
+    "nothing": None,
+    "empty": '""',
+    "repr": repr,
+    "str": str,
+    "bool": bool,
+    "SkipTemplate": SkipTemplate,
+}

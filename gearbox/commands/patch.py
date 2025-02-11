@@ -1,15 +1,16 @@
 from __future__ import print_function
 
-import os
 import fnmatch
+import os
 import re
 from argparse import RawDescriptionHelpFormatter
+
 from gearbox.command import Command
 
 
 class PatchCommand(Command):
     def get_description(self):
-        return r'''Patches files by replacing, appending or deleting text.
+        return r"""Patches files by replacing, appending or deleting text.
 
 This is meant to provide a quick and easy way to replace text and
 code in your projects.
@@ -26,44 +27,61 @@ replacements, like updating the Copyright year in your documentation:
 
 Works on a line by line basis, so it is not possible to match text
 across multiple lines.
-'''
+"""
 
     def get_parser(self, prog_name):
         parser = super(PatchCommand, self).get_parser(prog_name)
         parser.formatter_class = RawDescriptionHelpFormatter
 
-        parser.add_argument('pattern',
-                            help='The glob pattern of files that should be matched')
+        parser.add_argument(
+            "pattern", help="The glob pattern of files that should be matched"
+        )
 
-        parser.add_argument('text',
-                            help='text that should be looked up in matched files.')
+        parser.add_argument(
+            "text", help="text that should be looked up in matched files."
+        )
 
-        parser.add_argument('-r', '--replace',
-                            dest='replacement',
-                            help='Replace occurrences of text with REPLACEMENT')
+        parser.add_argument(
+            "-r",
+            "--replace",
+            dest="replacement",
+            help="Replace occurrences of text with REPLACEMENT",
+        )
 
-        parser.add_argument('-a', '--append',
-                            dest='addition',
-                            help='Append ADDITION after the line with matching text.')
+        parser.add_argument(
+            "-a",
+            "--append",
+            dest="addition",
+            help="Append ADDITION after the line with matching text.",
+        )
 
-        parser.add_argument('-d', '--delete',
-                            action='store_true',
-                            help='Delete lines matching text.')
+        parser.add_argument(
+            "-d", "--delete", action="store_true", help="Delete lines matching text."
+        )
 
-        parser.add_argument('-x', '--regex',
-                            dest='regex',
-                            action="store_true",
-                            help='Parse the text as a regular expression.')
+        parser.add_argument(
+            "-x",
+            "--regex",
+            dest="regex",
+            action="store_true",
+            help="Parse the text as a regular expression.",
+        )
 
-        parser.add_argument('-R', '--recursive',
-                            dest='recursive',
-                            action="store_true",
-                            help='Look for files matching pattern in subfolders too.')
+        parser.add_argument(
+            "-R",
+            "--recursive",
+            dest="recursive",
+            action="store_true",
+            help="Look for files matching pattern in subfolders too.",
+        )
 
-        parser.add_argument('-e', '--eval',
-                            dest='eval',
-                            action='store_true',
-                            help='Eval the replacement as Python code before applying it.')
+        parser.add_argument(
+            "-e",
+            "--eval",
+            dest="eval",
+            action="store_true",
+            help="Eval the replacement as Python code before applying it.",
+        )
 
         return parser
 
@@ -107,7 +125,7 @@ across multiple lines.
             if fnmatch.fnmatch(filepath, opts.pattern):
                 matches.append(filepath)
 
-        print('%s files matching' % len(matches))
+        print("%s files matching" % len(matches))
         for filepath in matches:
             replacement = opts.replacement
             if opts.eval and replacement:
@@ -134,9 +152,9 @@ across multiple lines.
                         lines.append(line)
 
                     if opts.addition:
-                        lines.append(addition+'\n')
+                        lines.append(addition + "\n")
 
-            print('%s Patching %s' % (matches and '!' or 'x', filepath))
+            print("%s Patching %s" % (matches and "!" or "x", filepath))
             if matches:
-                with open(filepath, 'w') as f:
+                with open(filepath, "w") as f:
                     f.writelines(lines)
