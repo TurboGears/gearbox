@@ -42,11 +42,10 @@ use = egg:dummy_app""")
             show_status=False,
         )
         server_instance = MagicMock()  # Serve instance with serve_forever auto-mocked.
-        with (
-            patch(
-                "wsgiref.simple_server.make_server", return_value=server_instance
-            ) as mock_make_server,
-            patch.object(ServeCommand, "loadapp", return_value=MagicMock()),
+        with patch(
+            "wsgiref.simple_server.make_server", return_value=server_instance
+        ) as mock_make_server, patch.object(
+            ServeCommand, "loadapp", return_value=MagicMock()
         ):
             cmd = ServeCommand(MagicMock(), argparse.Namespace(verbose_level=0))
             cmd.take_action(opts)
@@ -100,25 +99,21 @@ def test_setup_app(tmp_path):
 
     fake_setup_app = MagicMock(return_value=0)
 
-    with (
-        patch.object(sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]),
-        patch(
-            "gearbox.commands.setup_app.appconfig",
-            return_value=MagicMock(
-                context=MagicMock(
-                    entry_point_name="main",
-                    protocol="app",
-                    distribution=MagicMock(
-                        read_text=MagicMock(return_value="fakemodule")
-                    ),
-                )
-            ),
+    with patch.object(
+        sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]
+    ), patch(
+        "gearbox.commands.setup_app.appconfig",
+        return_value=MagicMock(
+            context=MagicMock(
+                entry_point_name="main",
+                protocol="app",
+                distribution=MagicMock(read_text=MagicMock(return_value="fakemodule")),
+            )
         ),
-        patch.object(
-            SetupAppCommand,
-            "_import_module",
-            return_value=MagicMock(setup_app=fake_setup_app),
-        ),
+    ), patch.object(
+        SetupAppCommand,
+        "_import_module",
+        return_value=MagicMock(setup_app=fake_setup_app),
     ):
         main()
 
@@ -162,14 +157,11 @@ def test_patch(tmp_path):
     test_file = tmp_path / "test.txt"
     test_file.write_text("Hello World\n")
 
-    with (
-        patch(
-            "gearbox.commands.patch.PatchCommand._walk_flat",
-            return_value=[str(test_file)],
-        ),
-        patch.object(
-            sys, "argv", ["gearbox", "patch", str(test_file), "World", "-r", "Gearbox"]
-        ),
+    with patch(
+        "gearbox.commands.patch.PatchCommand._walk_flat",
+        return_value=[str(test_file)],
+    ), patch.object(
+        sys, "argv", ["gearbox", "patch", str(test_file), "World", "-r", "Gearbox"]
     ):
         main()
 
