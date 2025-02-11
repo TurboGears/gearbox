@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gearbox"
-version = "0.4.0"
+version = "0.3.0"
 description = "Command line toolkit born as a PasteScript replacement for the TurboGears2 web framework"
 readme = "README.rst"
 keywords = ["web framework", "command-line", "setup"]
