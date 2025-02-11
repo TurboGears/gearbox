@@ -47,7 +47,7 @@ class CommandManager(object):
         if hasattr(entry_points, "select"):
             entry_points = entry_points.select(group=namespace)
         else:
-            entry_points = entry_points.get(group=namespace, default=[])
+            entry_points = entry_points.get(namespace, [])
         for ep in entry_points:
             LOG.debug("found command %r", ep.name)
             cmd_name = (
