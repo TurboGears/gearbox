@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gearbox"
-version = "0.3.0"
+version = "0.3.1"
 description = "Command line toolkit born as a PasteScript replacement for the TurboGears2 web framework"
 readme = "README.rst"
 keywords = ["web framework", "command-line", "setup"]
@@ -59,7 +59,7 @@ patch = "gearbox.commands.patch:PatchCommand"
 
 [project.entry-points."paste.server_runner"]
 wsgiref = "gearbox.commands.serve:wsgiref_server_runner"
-cherrypy = "gearbox.commands.serve:Cherrypy_server_runner"
+cherrypy = "gearbox.commands.serve:cherrypy_server_runner"
 
 [project.entry-points."paste.server_factory"]
 gevent = "gearbox.commands.serve:gevent_server_factory"
