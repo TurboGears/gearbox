@@ -125,6 +125,10 @@ class GearBox(object):
 
     def run(self, argv):
         """Application entry point"""
+        if not argv:
+            # Print help when started without a subcommand.
+            argv = ["--help"]
+
         try:
             self.options, remainder = self.parser.parse_known_args(argv)
             self._configure_logging()
