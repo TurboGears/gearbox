@@ -92,17 +92,15 @@ class SetupAppCommand(Command):
 
         if not modules:
             print("No modules are listed in top_level.txt")
-            print("Try running python setup.py egg_info to regenerate that file")
+            print("Try reinstalling the application to regenerate that file")
 
+        websetup_executed = False
         for mod_name in modules:
             mod_name = mod_name + ".websetup"
             try:
                 mod = self._import_module(mod_name)
-            except ImportError as e:
+            except ModuleNotFoundError as e:
                 print(e)
-                desc = getattr(e, "args", ["No module named websetup"])[0]
-                if not desc.startswith("No module named websetup"):
-                    raise
                 mod = None
 
             if mod is None:
@@ -111,16 +109,21 @@ class SetupAppCommand(Command):
             if hasattr(mod, "setup_app"):
                 if verbosity:
                     print("Running setup_app() from %s" % mod_name)
+                websetup_executed = True
                 self._call_setup_app(mod.setup_app, filename, section, vars)
             elif hasattr(mod, "setup_config"):
                 if verbosity:
                     print("Running setup_config() from %s" % mod_name)
+                websetup_executed = True
                 mod.setup_config(None, filename, section, vars)
             else:
                 print(
                     "No setup_app() or setup_config() function in %s (%s)"
                     % (mod.__name__, mod.__file__)
                 )
+
+        if not websetup_executed:
+            print("No websetup found in any of the top modules")
 
     def _call_setup_app(self, func, filename, section, vars):
         filename = os.path.abspath(filename)
