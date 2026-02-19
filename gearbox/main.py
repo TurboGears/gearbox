@@ -6,8 +6,7 @@ import logging
 import os
 import sys
 import warnings
-
-import pkg_resources
+from importlib.metadata import version
 
 from .commandmanager import CommandManager
 from .commands.help import HelpAction, HelpCommand
@@ -36,7 +35,7 @@ class GearBox(object):
             "--version",
             action="version",
             version="%(prog)s {0}".format(
-                pkg_resources.get_distribution("gearbox").version
+                version("gearbox")
             ),
         )
 
