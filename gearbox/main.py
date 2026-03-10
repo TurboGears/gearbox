@@ -1,17 +1,17 @@
 from __future__ import print_function
 
 import argparse
+import importlib.metadata
 import inspect
 import logging
 import os
+import re
 import sys
 import warnings
 
-import pkg_resources
-
 from .commandmanager import CommandManager
 from .commands.help import HelpAction, HelpCommand
-from .utils.plugins import find_egg_info_dir
+from .utils.plugins import find_local_distribution
 
 log = logging.getLogger("gearbox")
 
@@ -24,6 +24,11 @@ class GearBox(object):
     )
     DEFAULT_VERBOSE_LEVEL = 1
 
+    try:
+        VERSION = importlib.metadata.version("gearbox")
+    except importlib.metadata.PackageNotFoundError:
+        VERSION = "unknown"
+
     def __init__(self):
         self.command_manager = CommandManager("gearbox.commands")
         self.command_manager.add_command("help", HelpCommand)
@@ -35,9 +40,7 @@ class GearBox(object):
         parser.add_argument(
             "--version",
             action="version",
-            version="%(prog)s {0}".format(
-                pkg_resources.get_distribution("gearbox").version
-            ),
+            version="%(prog)s {0}".format(self.VERSION),
         )
 
         verbose_group = parser.add_mutually_exclusive_group()
@@ -136,20 +139,8 @@ class GearBox(object):
             if self.options.relative_plugins:
                 curdir = os.getcwd()
                 sys.path.insert(0, curdir)
-                pkg_resources.working_set.add_entry(curdir)
 
-            try:
-                self._load_commands_for_current_dir()
-            except pkg_resources.DistributionNotFound as e:
-                try:
-                    error_msg = repr(e)
-                except Exception:
-                    error_msg = "Unknown Error"
-
-                log.error(
-                    "Failed to load project commands with error "
-                    "``%s``, have you installed your project?" % error_msg
-                )
+            self._load_commands_for_current_dir()
 
         except Exception as err:
             if hasattr(self, "options"):
@@ -194,31 +185,100 @@ class GearBox(object):
             return 4
 
     def _load_commands_for_current_dir(self):
-        egg_info_dir = find_egg_info_dir(os.getcwd())
-        if egg_info_dir:
-            package_name = os.path.splitext(os.path.basename(egg_info_dir))[0]
+        dist, search_path = find_local_distribution(os.getcwd(), "gearbox.plugins")
+        if dist is None:
+            return
+
+        for ep in dist.entry_points:
+            if ep.group == "gearbox.plugins":
+                self.load_commands_for_package(ep.module, search_paths=[search_path])
+
+    def load_commands_for_package(self, package_name, search_paths=None):
+        candidates = [package_name]
+        top_level_package = package_name.split(".", 1)[0]
+        for candidate in importlib.metadata.packages_distributions().get(
+            top_level_package, []
+        ):
+            if candidate not in candidates:
+                candidates.append(candidate)
+
+        local_distributions = []
+        if search_paths:
+            for path in search_paths:
+                if not path:
+                    continue
+                local_distributions.extend(importlib.metadata.distributions(path=[path]))
+
+        normalized_candidates = set(
+            self._normalize_dist_name(name) for name in candidates
+        )
+        local_candidate_distributions = []
+
+        for dist in local_distributions:
+            matched = False
+            dist_name = dist.metadata.get("Name")
+            if (
+                dist_name
+                and self._normalize_dist_name(dist_name) in normalized_candidates
+            ):
+                candidate_name = dist_name
+                if candidate_name not in candidates:
+                    candidates.append(candidate_name)
+                matched = True
+
+            top_level_names = dist.read_text("top_level.txt")
+            if top_level_names:
+                for top_level_name in top_level_names.splitlines():
+                    if top_level_name.strip() == top_level_package:
+                        candidate_name = dist.metadata.get("Name")
+                        if candidate_name and candidate_name not in candidates:
+                            candidates.append(candidate_name)
+                        matched = True
+                        break
+            if matched:
+                local_candidate_distributions.append(dist)
+
+        found_distribution = False
+        for dist in local_candidate_distributions:
+            found_distribution = True
+            loaded_commands = False
+            for ep in dist.entry_points:
+                if ep.group == "gearbox.project_commands":
+                    self.command_manager.commands[ep.name.replace("_", " ")] = ep
+                    loaded_commands = True
+            if loaded_commands:
+                return
+
+        for candidate in candidates:
+            if any(
+                self._normalize_dist_name(dist.metadata.get("Name", ""))
+                == self._normalize_dist_name(candidate)
+                for dist in local_candidate_distributions
+            ):
+                continue
 
             try:
-                pkg_resources.require(package_name)
-            except pkg_resources.DistributionNotFound as e:
-                msg = "%sNot Found%s: %s (is it an installed Distribution?)"
-                if str(e) != package_name:
-                    raise pkg_resources.DistributionNotFound(
-                        msg % (str(e) + ": ", " for", package_name)
-                    )
-                else:
-                    raise pkg_resources.DistributionNotFound(
-                        msg % ("", "", package_name)
-                    )
+                dist = importlib.metadata.distribution(candidate)
+            except importlib.metadata.PackageNotFoundError:
+                continue
+            found_distribution = True
+            loaded_commands = False
+            for ep in dist.entry_points:
+                if ep.group == "gearbox.project_commands":
+                    self.command_manager.commands[ep.name.replace("_", " ")] = ep
+                    loaded_commands = True
+            if loaded_commands:
+                return
 
-            dist = pkg_resources.get_distribution(package_name)
-            for epname, ep in dist.get_entry_map("gearbox.plugins").items():
-                self.load_commands_for_package(ep.module_name)
+        if not found_distribution:
+            log.error(
+                "Failed to load project commands with error "
+                "``%s``, have you installed your project?" % package_name
+            )
 
-    def load_commands_for_package(self, package_name):
-        dist = pkg_resources.get_distribution(package_name)
-        for epname, ep in dist.get_entry_map("gearbox.project_commands").items():
-            self.command_manager.commands[epname.replace("_", " ")] = ep
+    @staticmethod
+    def _normalize_dist_name(name):
+        return re.sub(r"[-_.]+", "-", name).lower()
 
     def _getargspec(self, func):
         if not hasattr(inspect, "signature"):
