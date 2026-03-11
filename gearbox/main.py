@@ -207,7 +207,8 @@ class GearBox(object):
             for path in search_paths:
                 if not path:
                     continue
-                local_distributions.extend(importlib.metadata.distributions(path=[path]))
+                path_distributions = importlib.metadata.distributions(path=[path])
+                local_distributions.extend(path_distributions)
 
         normalized_candidates = set(
             self._normalize_dist_name(name) for name in candidates
