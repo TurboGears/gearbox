@@ -1,18 +1,23 @@
+import importlib.metadata
 import os
 
 
-def find_egg_info_dir(dir):
-    while 1:
+def find_local_distribution(start_dir, entry_point_group=None):
+    current_dir = os.path.abspath(start_dir)
+    while True:
         try:
-            filenames = os.listdir(dir)
-        except OSError:
-            # Probably permission denied or something
-            return None
-        for fn in filenames:
-            if fn.endswith(".egg-info") and os.path.isdir(os.path.join(dir, fn)):
-                return os.path.join(dir, fn)
-        parent = os.path.dirname(dir)
-        if parent == dir:
+            distributions = importlib.metadata.distributions(path=[current_dir])
+        except (OSError, PermissionError):
+            distributions = ()
+
+        for dist in distributions:
+            if entry_point_group is None or any(
+                ep.group == entry_point_group for ep in dist.entry_points
+            ):
+                return dist, current_dir
+
+        parent = os.path.dirname(current_dir)
+        if parent == current_dir:
             # Top-most directory
-            return None
-        dir = parent
+            return None, None
+        current_dir = parent

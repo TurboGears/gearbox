@@ -5,7 +5,6 @@ from argparse import RawDescriptionHelpFormatter
 
 from gearbox.command import Command
 from gearbox.template import GearBoxTemplate
-from gearbox.utils.plugins import find_egg_info_dir
 
 
 class ScaffoldCommand(Command):
@@ -61,6 +60,7 @@ templates/template.html.template scaffolds of the current project.
             "-np",
             "--no-package",
             dest="nopackage",
+            action="store_true",
             help="When using subdir option do not create python "
             "packages, but plain directories.",
         )
@@ -76,27 +76,6 @@ templates/template.html.template scaffolds of the current project.
                     template_filename = os.path.join(root, f)
                     break
         return template_filename
-
-    def _find_toplevel_packages(self):
-        egg_info_dir = find_egg_info_dir(os.getcwd())
-        if egg_info_dir is None:
-            print(
-                "Unable to find distribution egg-info, did you run setup.py egg_info or develop?"
-            )
-            return []
-
-        modules = os.path.join(egg_info_dir, "top_level.txt")
-        try:
-            modules = open(modules).readlines()
-        except Exception:
-            print("Unable to detect distribution top level packages.")
-            return []
-
-        modules = map(lambda x: x.strip().replace(os.sep, "."), modules)
-        modules = filter(
-            lambda x: not x.startswith("test"), modules
-        )  # Remove test suite modules
-        return list(modules)
 
     def take_action(self, opts):
         for template in opts.scaffold_name:
@@ -136,7 +115,7 @@ templates/template.html.template scaffolds of the current project.
 
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
-                if opts.subdir:
+                if opts.subdir and not opts.nopackage:
                     package_init = os.path.join(output_dir, "__init__.py")
                     if not os.path.exists(package_init):
                         with open(package_init, "w") as pif:
@@ -157,7 +136,6 @@ templates/template.html.template scaffolds of the current project.
                             "subdir": opts.subdir,
                             "subpackage": subdir_as_package,
                             "dotted_subpackage": "." + subdir_as_package,
-                            "packages": self._find_toplevel_packages(),
                         },
                     )
                 except NameError as e:
