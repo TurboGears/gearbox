@@ -11,6 +11,7 @@ from gearbox.commands.help import HelpAction
 from gearbox.commands.serve import ServeCommand
 from gearbox.commands.setup_app import SetupAppCommand
 from gearbox.main import GearBox, main
+from gearbox.utils.plugins import find_local_distribution
 
 
 def _write_dist_info(
@@ -475,6 +476,54 @@ def test_run_continues_when_project_distribution_is_missing():
 
     assert result == 42
     run_subcommand.assert_called_once_with(["help"])
+
+
+def test_find_local_distribution_continues_after_unreadable_directory(tmp_path):
+    project_root = tmp_path / "project"
+    nested_dir = project_root / "app" / "pkg"
+    nested_dir.mkdir(parents=True)
+
+    plugin_ep = MagicMock(group="gearbox.plugins")
+    dist = MagicMock()
+    dist.entry_points = [plugin_ep]
+
+    def fake_distributions(path):
+        scan_dir = path[0]
+        if scan_dir == str(nested_dir):
+            raise PermissionError("denied")
+        if scan_dir == str(project_root):
+            return [dist]
+        return []
+
+    with patch(
+        "gearbox.utils.plugins.importlib.metadata.distributions",
+        side_effect=fake_distributions,
+    ):
+        found_dist, found_path = find_local_distribution(
+            str(nested_dir), "gearbox.plugins"
+        )
+
+    assert found_dist is dist
+    assert found_path == str(project_root)
+
+
+def test_load_commands_for_package_logs_context_when_distribution_missing(caplog):
+    app = GearBox()
+
+    with patch(
+        "importlib.metadata.packages_distributions",
+        return_value={"tg": ["TurboGears2.devtools"]},
+    ), patch(
+        "importlib.metadata.distribution",
+        side_effect=importlib.metadata.PackageNotFoundError("missing"),
+    ):
+        with caplog.at_level("ERROR", logger="gearbox"):
+            app.load_commands_for_package("tg.devtools")
+
+    assert (
+        "Failed to load project commands for package 'tg.devtools'" in caplog.text
+    )
+    assert "Have you installed your project?" in caplog.text
 
 
 def test_version_option_uses_gearbox_version_fallback(capsys, monkeypatch):

@@ -272,8 +272,9 @@ class GearBox(object):
 
         if not found_distribution:
             log.error(
-                "Failed to load project commands with error "
-                "``%s``, have you installed your project?" % package_name
+                "Failed to load project commands for package '%s'. "
+                "Have you installed your project?",
+                package_name,
             )
 
     @staticmethod
