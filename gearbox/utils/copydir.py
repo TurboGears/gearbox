@@ -6,17 +6,6 @@ import os
 import sys
 
 
-def native_(s, encoding="latin-1", errors="strict"):
-    """If ``s`` is an instance of ``str``, return
-    ``s``, otherwise return ``str(s, encoding, errors)``"""
-    if isinstance(s, str):
-        return s
-    return str(s, encoding, errors)
-
-
-fsenc = sys.getfilesystemencoding()
-
-
 def copy_dir(
     source,
     dest,
@@ -104,9 +93,8 @@ def copy_dir(
             )
             continue
         else:
-            f = open(full, "rb")
-            content = f.read()
-            f.close()
+            with open(full, "rb") as f:
+                content = f.read()
         if sub_file:
             try:
                 content = substitute_content(
@@ -118,19 +106,18 @@ def copy_dir(
                 continue  # pragma: no cover
         already_exists = os.path.exists(dest_full)
         if already_exists:
-            f = open(dest_full, "rb")
-            old_content = f.read()
-            f.close()
+            with open(dest_full, "rb") as f:
+                old_content = f.read()
             if old_content == content:
                 if verbosity:
                     out("%s%s already exists (same content)" % (pad, dest_full))
                 continue  # pragma: no cover
             if interactive:
                 if not query_interactive(
-                    native_(full, fsenc),
-                    native_(dest_full, fsenc),
-                    native_(content, fsenc),
-                    native_(old_content, fsenc),
+                    full,
+                    dest_full,
+                    content.decode("latin-1"),
+                    old_content.decode("latin-1"),
                     simulate=simulate,
                     out_=out_,
                 ):
@@ -140,9 +127,8 @@ def copy_dir(
         if verbosity:
             out("%sCopying %s to %s" % (pad, os.path.basename(full), dest_full))
         if not simulate:
-            f = open(dest_full, "wb")
-            f.write(content)
-            f.close()
+            with open(dest_full, "wb") as f:
+                f.write(content)
 
 
 class SkipTemplate(Exception):
@@ -249,7 +235,7 @@ def query_interactive(
         )
     )
     prompt = "Overwrite %s [y/n/d/B/?] " % dest_fn
-    while 1:
+    while True:
         if all_answer is None:
             response = input(prompt).strip().lower()
         else:

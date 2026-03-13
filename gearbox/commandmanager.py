@@ -10,7 +10,7 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
-class EntryPointWrapper(object):
+class EntryPointWrapper:
     """Wrap up a command class already imported to make it look like a plugin."""
 
     def __init__(self, name, command_class):
@@ -21,7 +21,7 @@ class EntryPointWrapper(object):
         return self.command_class
 
 
-class CommandManager(object):
+class CommandManager:
     """Discovers commands and handles lookup based on argv data.
 
     :param namespace: String containing the setuptools entrypoint namespace
@@ -35,26 +35,16 @@ class CommandManager(object):
         self.commands = {}
         self.namespace = namespace
         self.convert_underscores = convert_underscores
-        self._load_commands()
-
-    def _load_commands(self):
-        # NOTE(jamielennox): kept for compatability.
         self.load_commands(self.namespace)
 
     def load_commands(self, namespace):
         """Load all the commands from an entrypoint"""
-        entry_points = importlib.metadata.entry_points()
-        if hasattr(entry_points, "select"):
-            entry_points = entry_points.select(group=namespace)
-        else:
-            entry_points = entry_points.get(namespace, [])
-        for ep in entry_points:
+        for ep in importlib.metadata.entry_points().select(group=namespace):
             LOG.debug("found command %r", ep.name)
             cmd_name = (
                 ep.name.replace("_", " ") if self.convert_underscores else ep.name
             )
             self.commands[cmd_name] = ep
-        return
 
     def __iter__(self):
         return iter(self.commands.items())

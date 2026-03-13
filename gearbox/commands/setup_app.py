@@ -1,5 +1,4 @@
-from __future__ import print_function
-
+import importlib
 import os
 
 from paste.deploy import appconfig
@@ -12,7 +11,7 @@ class SetupAppCommand(Command):
         return "Setup an application, given a config file"
 
     def get_parser(self, prog_name):
-        parser = super(SetupAppCommand, self).get_parser(prog_name)
+        parser = super().get_parser(prog_name)
 
         parser.add_argument(
             "-c",
@@ -79,20 +78,31 @@ class SetupAppCommand(Command):
         the extra attributes ``global_conf``, ``local_conf`` and
         ``filename``
         """
-        try:
-            top_level_lines = dist.read_text("top_level.txt").split("\n")
-        except AttributeError:
-            # Backward compatbility with older PasteDeploy
-            top_level_lines = dist.get_metadata_lines("top_level.txt")
-        modules = [
-            line.strip()
-            for line in top_level_lines
-            if line.strip() and not line.strip().startswith("#")
-        ]
+        modules = []
+        for path in dist.files or ():
+            parts = tuple(path.parts)
+            if not parts or parts[-1] != "websetup.py":
+                continue
+            if any(part.endswith((".dist-info", ".egg-info")) for part in parts):
+                continue
+
+            package_parts = parts[:-1]
+            if not package_parts:
+                continue
+            if not all(part.isidentifier() for part in package_parts):
+                continue
+
+            modules.append(".".join(package_parts))
 
         if not modules:
-            print("No modules are listed in top_level.txt")
-            print("Try reinstalling the application to regenerate that file")
+            print(
+                "Unable to find any websetup modules from distribution metadata "
+                "(dist.files)."
+            )
+            print("Try reinstalling the application and rerun setup-app.")
+            return
+
+        modules = sorted(set(modules))
 
         websetup_executed = False
         for mod_name in modules:
@@ -138,8 +148,4 @@ class SetupAppCommand(Command):
         """
         Import a module.
         """
-        mod = __import__(s)
-        parts = s.split(".")
-        for part in parts[1:]:
-            mod = getattr(mod, part)
-        return mod
+        return importlib.import_module(s)

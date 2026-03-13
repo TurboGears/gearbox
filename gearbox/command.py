@@ -6,7 +6,7 @@ import sys
 from .template import GearBoxTemplate
 
 
-class Command(object):
+class Command:
     deprecated = False
 
     def __init__(self, app, app_args, cmd_name=None):

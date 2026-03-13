@@ -1,5 +1,6 @@
 import argparse
 import importlib.metadata
+import pathlib
 import sys
 import tempfile
 from unittest.mock import MagicMock, patch
@@ -129,6 +130,8 @@ def test_makepackage(tmp_path, monkeypatch):
 
     project_dir = tmp_path / "TestProject"
     assert project_dir.is_dir()
+    assert (project_dir / "pyproject.toml").is_file()
+    assert not (project_dir / "setup.py").exists()
 
 
 # --- Test for setup-app command ---
@@ -148,7 +151,40 @@ def test_setup_app(tmp_path):
             context=MagicMock(
                 entry_point_name="main",
                 protocol="app",
-                distribution=MagicMock(read_text=MagicMock(return_value="fakemodule")),
+                distribution=MagicMock(
+                    files=[pathlib.PurePosixPath("fakemodule/websetup.py")]
+                ),
+            )
+        ),
+    ), patch.object(
+        SetupAppCommand,
+        "_import_module",
+        return_value=MagicMock(setup_app=fake_setup_app),
+    ):
+        main()
+
+    fake_setup_app.assert_called_once()
+
+
+def test_setup_app_uses_websetup_file_from_dist_files(tmp_path):
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    config_file = project_dir / "development.ini"
+    config_file.write_text("[app:main]\nuse=egg:fakeegg\n")
+
+    fake_setup_app = MagicMock(return_value=0)
+    fake_dist = MagicMock()
+    fake_dist.files = [pathlib.PurePosixPath("fakemodule/websetup.py")]
+
+    with patch.object(
+        sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]
+    ), patch(
+        "gearbox.commands.setup_app.appconfig",
+        return_value=MagicMock(
+            context=MagicMock(
+                entry_point_name="main",
+                protocol="app",
+                distribution=fake_dist,
             )
         ),
     ), patch.object(

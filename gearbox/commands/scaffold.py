@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import os
 from argparse import RawDescriptionHelpFormatter
 
@@ -23,7 +21,7 @@ templates/template.html.template scaffolds of the current project.
 """
 
     def get_parser(self, prog_name):
-        parser = super(ScaffoldCommand, self).get_parser(prog_name)
+        parser = super().get_parser(prog_name)
 
         parser.formatter_class = RawDescriptionHelpFormatter
 
@@ -66,16 +64,6 @@ templates/template.html.template scaffolds of the current project.
         )
 
         return parser
-
-    def _lookup(self, template, where):
-        template_filename = None
-        for root, __, files in os.walk(where):
-            for f in files:
-                fname, fext = os.path.splitext(f)
-                if fext == ".template" and os.path.splitext(fname)[0] == template:
-                    template_filename = os.path.join(root, f)
-                    break
-        return template_filename
 
     def take_action(self, opts):
         for template in opts.scaffold_name:
@@ -144,3 +132,13 @@ templates/template.html.template scaffolds of the current project.
 
                 with open(output_path, "w") as of:
                     of.write(text)
+
+    def _lookup(self, template, where):
+        template_filename = None
+        for root, __, files in os.walk(where):
+            for f in files:
+                fname, fext = os.path.splitext(f)
+                if fext == ".template" and os.path.splitext(fname)[0] == template:
+                    template_filename = os.path.join(root, f)
+                    break
+        return template_filename
