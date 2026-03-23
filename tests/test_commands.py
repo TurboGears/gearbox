@@ -197,6 +197,71 @@ def test_setup_app_uses_websetup_file_from_dist_files(tmp_path):
     fake_setup_app.assert_called_once()
 
 
+def test_setup_app_uses_websetup_package_from_dist_files(tmp_path):
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    config_file = project_dir / "development.ini"
+    config_file.write_text("[app:main]\nuse=egg:fakeegg\n")
+
+    fake_setup_app = MagicMock(return_value=0)
+    fake_dist = MagicMock()
+    fake_dist.files = [pathlib.PurePosixPath("fakemodule/websetup/__init__.py")]
+
+    with patch.object(
+        sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]
+    ), patch(
+        "gearbox.commands.setup_app.appconfig",
+        return_value=MagicMock(
+            context=MagicMock(
+                entry_point_name="main",
+                protocol="app",
+                distribution=fake_dist,
+            )
+        ),
+    ), patch.object(
+        SetupAppCommand,
+        "_import_module",
+        return_value=MagicMock(setup_app=fake_setup_app),
+    ) as import_module:
+        main()
+
+    import_module.assert_called_once_with("fakemodule.websetup")
+    fake_setup_app.assert_called_once()
+
+
+def test_setup_app_falls_back_to_top_level_metadata(tmp_path):
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    config_file = project_dir / "development.ini"
+    config_file.write_text("[app:main]\nuse=egg:fakeegg\n")
+
+    fake_setup_app = MagicMock(return_value=0)
+    fake_dist = MagicMock()
+    fake_dist.files = None
+    fake_dist.read_text.return_value = "fakemodule\n"
+
+    with patch.object(
+        sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]
+    ), patch(
+        "gearbox.commands.setup_app.appconfig",
+        return_value=MagicMock(
+            context=MagicMock(
+                entry_point_name="main",
+                protocol="app",
+                distribution=fake_dist,
+            )
+        ),
+    ), patch.object(
+        SetupAppCommand,
+        "_import_module",
+        return_value=MagicMock(setup_app=fake_setup_app),
+    ) as import_module:
+        main()
+
+    import_module.assert_called_once_with("fakemodule.websetup")
+    fake_setup_app.assert_called_once()
+
+
 # --- Test for scaffold command ---
 def test_scaffold(tmp_path):
     lookup_dir = tmp_path / "scaffolds"

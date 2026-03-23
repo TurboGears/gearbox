@@ -78,26 +78,11 @@ class SetupAppCommand(Command):
         the extra attributes ``global_conf``, ``local_conf`` and
         ``filename``
         """
-        modules = []
-        for path in dist.files or ():
-            parts = tuple(path.parts)
-            if not parts or parts[-1] != "websetup.py":
-                continue
-            if any(part.endswith((".dist-info", ".egg-info")) for part in parts):
-                continue
-
-            package_parts = parts[:-1]
-            if not package_parts:
-                continue
-            if not all(part.isidentifier() for part in package_parts):
-                continue
-
-            modules.append(".".join(package_parts))
+        modules = self._find_websetup_modules(dist)
 
         if not modules:
             print(
-                "Unable to find any websetup modules from distribution metadata "
-                "(dist.files)."
+                "Unable to find any websetup modules from distribution metadata."
             )
             print("Try reinstalling the application and rerun setup-app.")
             return
@@ -134,6 +119,43 @@ class SetupAppCommand(Command):
 
         if not websetup_executed:
             print("No websetup found in any of the top modules")
+
+    def _find_websetup_modules(self, dist):
+        modules = []
+        for path in dist.files or ():
+            parts = tuple(path.parts)
+            if any(part.endswith((".dist-info", ".egg-info")) for part in parts):
+                continue
+
+            if parts[-1] == "websetup.py":
+                package_parts = parts[:-1]
+            elif len(parts) >= 2 and parts[-2:] == ("websetup", "__init__.py"):
+                package_parts = parts[:-2]
+            else:
+                continue
+
+            if not package_parts:
+                continue
+            if not all(part.isidentifier() for part in package_parts):
+                continue
+
+            modules.append(".".join(package_parts))
+
+        if modules:
+            return sorted(set(modules))
+
+        return self._find_websetup_modules_from_top_level(dist)
+
+    def _find_websetup_modules_from_top_level(self, dist):
+        top_level_text = dist.read_text("top_level.txt")
+        if not top_level_text:
+            return []
+
+        return [
+            line.strip()
+            for line in top_level_text.splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        ]
 
     def _call_setup_app(self, func, filename, section, vars):
         filename = os.path.abspath(filename)
