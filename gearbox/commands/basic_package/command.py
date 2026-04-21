@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import re
 
 from gearbox.command import TemplateCommand
@@ -12,7 +10,7 @@ class MakePackageCommand(TemplateCommand):
         return "Creates a basic python package"
 
     def get_parser(self, prog_name):
-        parser = super(MakePackageCommand, self).get_parser(prog_name)
+        parser = super().get_parser(prog_name)
 
         parser.add_argument(
             "-n",

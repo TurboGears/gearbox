@@ -45,7 +45,7 @@ class HelpCommand(Command):
     """print detailed help for another command"""
 
     def get_parser(self, prog_name):
-        parser = super(HelpCommand, self).get_parser(prog_name)
+        parser = super().get_parser(prog_name)
         parser.add_argument(
             "cmd",
             nargs="*",

@@ -6,12 +6,10 @@ About {{package}}
 Installing
 -------------------------------
 
-{{package}} can be installed from pypi::
-
-    easy_install {{package}}
-
-or::
+{{package}} can be installed from PyPI::
 
     pip install {{package}}
 
-should just work for most of the users
+For local development (editable install)::
+
+    pip install -e .

@@ -5,7 +5,7 @@ from tempita import Template
 from .utils.copydir import copy_dir
 
 
-class GearBoxTemplate(object):
+class GearBoxTemplate:
     def template_renderer(self, content, vars, filename=None):
         tmpl = Template(content, name=filename)
         return tmpl.substitute(vars)

@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "{{project}}"
+version = "{{version}}"
+description = "{{description or ''}}"
+readme = "README.rst"
+requires-python = ">=3.10"
+authors = [{name = "{{author or ''}}", email = "{{author_email or ''}}"}]
+license = {text = "{{license_name or ''}}"}
+keywords = ["{{keywords or ''}}"]
+urls = {Homepage = "{{url or ''}}"}

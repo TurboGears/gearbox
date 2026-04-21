@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import fnmatch
 import os
 import re
@@ -30,7 +28,7 @@ across multiple lines.
 """
 
     def get_parser(self, prog_name):
-        parser = super(PatchCommand, self).get_parser(prog_name)
+        parser = super().get_parser(prog_name)
         parser.formatter_class = RawDescriptionHelpFormatter
 
         parser.add_argument(
@@ -85,28 +83,6 @@ across multiple lines.
 
         return parser
 
-    def _walk_recursive(self):
-        for root, dirnames, filenames in os.walk(os.getcwd()):
-            for filename in filenames:
-                yield os.path.join(root, filename)
-
-    def _walk_flat(self):
-        root = os.getcwd()
-        for filename in os.listdir(root):
-            yield os.path.join(root, filename)
-
-    def _replace_regex(self, line, text, replacement):
-        return re.sub(text, replacement, line)
-
-    def _replace_plain(self, line, text, replacement):
-        return line.replace(text, replacement)
-
-    def _match_regex(self, line, text):
-        return re.search(text, line) is not None
-
-    def _match_plain(self, line, text):
-        return text in line
-
     def take_action(self, opts):
         walk = self._walk_flat
         if opts.recursive:
@@ -158,3 +134,25 @@ across multiple lines.
             if matches:
                 with open(filepath, "w") as f:
                     f.writelines(lines)
+
+    def _walk_recursive(self):
+        for root, dirnames, filenames in os.walk(os.getcwd()):
+            for filename in filenames:
+                yield os.path.join(root, filename)
+
+    def _walk_flat(self):
+        root = os.getcwd()
+        for filename in os.listdir(root):
+            yield os.path.join(root, filename)
+
+    def _replace_regex(self, line, text, replacement):
+        return re.sub(text, replacement, line)
+
+    def _replace_plain(self, line, text, replacement):
+        return line.replace(text, replacement)
+
+    def _match_regex(self, line, text):
+        return re.search(text, line) is not None
+
+    def _match_plain(self, line, text):
+        return text in line

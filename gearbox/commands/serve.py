@@ -9,11 +9,9 @@
 # lib/site.py
 
 import atexit
-import ctypes
 import errno
 import logging
 import os
-import platform
 import re
 import subprocess
 import sys
@@ -30,17 +28,7 @@ from gearbox.utils.log import setup_logging
 
 MAXFD = 1024
 
-if platform.system() == "Windows" and not hasattr(os, "kill"):  # pragma: no cover
-    # py 2.6 on windows
-    def kill(pid, sig=None):
-        """kill function for Win32"""
-        # signal is ignored, semibogus raise message
-        kernel32 = ctypes.windll.kernel32
-        handle = kernel32.OpenProcess(1, 0, pid)
-        if 0 == kernel32.TerminateProcess(handle, 0):
-            raise OSError("No such process %s" % pid)
-else:
-    kill = os.kill
+kill = os.kill
 
 
 class DaemonizeException(Exception):
@@ -55,7 +43,7 @@ class ServeCommand(Command):
     possible_subcommands = ("start", "stop", "restart", "status")
 
     def get_parser(self, prog_name):
-        parser = super(ServeCommand, self).get_parser(prog_name)
+        parser = super().get_parser(prog_name)
 
         parser.add_argument(
             "-c",
@@ -512,7 +500,7 @@ class ServeCommand(Command):
         if self.verbose > 0:
             self.out("Starting subprocess with angel")
 
-        while 1:
+        while True:
             args = self.get_fixed_argv()
             new_environ = os.environ.copy()
             new_environ[self._monitor_environ_key] = "true"
@@ -580,7 +568,7 @@ class ServeCommand(Command):
             os.setuid(uid)
 
 
-class LazyWriter(object):
+class LazyWriter:
     """
     File-like object that opens a file lazily when it is first written
     to.
@@ -718,10 +706,7 @@ def wsgiref_server_runner(wsgi_app, global_conf, **kw):  # pragma: no cover
         server_class = SecureWSGIServer
 
     if threaded:
-        try:
-            from socketserver import ThreadingMixIn
-        except ImportError:
-            from SocketServer import ThreadingMixIn
+        from socketserver import ThreadingMixIn
 
         class GearboxWSGIServer(ThreadingMixIn, server_class):
             pass
@@ -747,12 +732,8 @@ def wsgiref_server_runner(wsgi_app, global_conf, **kw):  # pragma: no cover
 # For paste.deploy server instantiation (egg:gearbox#gevent)
 def gevent_server_factory(global_config, **kw):
     from gevent import reinit
-
-    try:
-        from gevent.pywsgi import WSGIServer
-    except ImportError:
-        from gevent.wsgi import WSGIServer
     from gevent.monkey import patch_all
+    from gevent.pywsgi import WSGIServer
 
     reinit()
     patch_all(dns=False)
@@ -858,27 +839,16 @@ def cherrypy_server_runner(
         if var is not None:
             kwargs[var_name] = int(var)
 
-    server = None
-    try:
-        # Try to import from newer CherryPy releases.
-        import cheroot.wsgi as wsgiserver
+    import cheroot.wsgi as wsgiserver
 
-        server = wsgiserver.Server(bind_addr, app, server_name=server_name, **kwargs)
-    except ImportError:
-        # Nope. Try to import from older CherryPy releases.
-        # We might just take another ImportError here. Oh well.
-        from cherrypy import wsgiserver
-
-        server = wsgiserver.CherryPyWSGIServer(
-            bind_addr, app, server_name=server_name, **kwargs
-        )
+    server = wsgiserver.Server(bind_addr, app, server_name=server_name, **kwargs)
 
     server.ssl_certificate = server.ssl_private_key = ssl_pem
     if protocol_version:
         server.protocol = protocol_version
 
     try:
-        protocol = is_ssl and "https" or "http"
+        protocol = "https" if is_ssl else "http"
         if host == "0.0.0.0":
             print(
                 "serving on 0.0.0.0:%s view at %s://127.0.0.1:%s"

@@ -1,5 +1,6 @@
 import argparse
 import importlib.metadata
+import pathlib
 import sys
 import tempfile
 from unittest.mock import MagicMock, patch
@@ -11,6 +12,7 @@ from gearbox.commands.help import HelpAction
 from gearbox.commands.serve import ServeCommand
 from gearbox.commands.setup_app import SetupAppCommand
 from gearbox.main import GearBox, main
+from gearbox.utils.copydir import copy_dir
 from gearbox.utils.plugins import find_local_distribution
 
 
@@ -129,6 +131,8 @@ def test_makepackage(tmp_path, monkeypatch):
 
     project_dir = tmp_path / "TestProject"
     assert project_dir.is_dir()
+    assert (project_dir / "pyproject.toml").is_file()
+    assert not (project_dir / "setup.py").exists()
 
 
 # --- Test for setup-app command ---
@@ -148,7 +152,9 @@ def test_setup_app(tmp_path):
             context=MagicMock(
                 entry_point_name="main",
                 protocol="app",
-                distribution=MagicMock(read_text=MagicMock(return_value="fakemodule")),
+                distribution=MagicMock(
+                    files=[pathlib.PurePosixPath("fakemodule/websetup.py")]
+                ),
             )
         ),
     ), patch.object(
@@ -158,6 +164,102 @@ def test_setup_app(tmp_path):
     ):
         main()
 
+    fake_setup_app.assert_called_once()
+
+
+def test_setup_app_uses_websetup_file_from_dist_files(tmp_path):
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    config_file = project_dir / "development.ini"
+    config_file.write_text("[app:main]\nuse=egg:fakeegg\n")
+
+    fake_setup_app = MagicMock(return_value=0)
+    fake_dist = MagicMock()
+    fake_dist.files = [pathlib.PurePosixPath("fakemodule/websetup.py")]
+
+    with patch.object(
+        sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]
+    ), patch(
+        "gearbox.commands.setup_app.appconfig",
+        return_value=MagicMock(
+            context=MagicMock(
+                entry_point_name="main",
+                protocol="app",
+                distribution=fake_dist,
+            )
+        ),
+    ), patch.object(
+        SetupAppCommand,
+        "_import_module",
+        return_value=MagicMock(setup_app=fake_setup_app),
+    ):
+        main()
+
+    fake_setup_app.assert_called_once()
+
+
+def test_setup_app_uses_websetup_package_from_dist_files(tmp_path):
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    config_file = project_dir / "development.ini"
+    config_file.write_text("[app:main]\nuse=egg:fakeegg\n")
+
+    fake_setup_app = MagicMock(return_value=0)
+    fake_dist = MagicMock()
+    fake_dist.files = [pathlib.PurePosixPath("fakemodule/websetup/__init__.py")]
+
+    with patch.object(
+        sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]
+    ), patch(
+        "gearbox.commands.setup_app.appconfig",
+        return_value=MagicMock(
+            context=MagicMock(
+                entry_point_name="main",
+                protocol="app",
+                distribution=fake_dist,
+            )
+        ),
+    ), patch.object(
+        SetupAppCommand,
+        "_import_module",
+        return_value=MagicMock(setup_app=fake_setup_app),
+    ) as import_module:
+        main()
+
+    import_module.assert_called_once_with("fakemodule.websetup")
+    fake_setup_app.assert_called_once()
+
+
+def test_setup_app_falls_back_to_top_level_metadata(tmp_path):
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    config_file = project_dir / "development.ini"
+    config_file.write_text("[app:main]\nuse=egg:fakeegg\n")
+
+    fake_setup_app = MagicMock(return_value=0)
+    fake_dist = MagicMock()
+    fake_dist.files = None
+    fake_dist.read_text.return_value = "fakemodule\n"
+
+    with patch.object(
+        sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]
+    ), patch(
+        "gearbox.commands.setup_app.appconfig",
+        return_value=MagicMock(
+            context=MagicMock(
+                entry_point_name="main",
+                protocol="app",
+                distribution=fake_dist,
+            )
+        ),
+    ), patch.object(
+        SetupAppCommand,
+        "_import_module",
+        return_value=MagicMock(setup_app=fake_setup_app),
+    ) as import_module:
+        main()
+
+    import_module.assert_called_once_with("fakemodule.websetup")
     fake_setup_app.assert_called_once()
 
 
@@ -298,6 +400,42 @@ def test_patch(tmp_path):
 
     content = test_file.read_text()
     assert "Gearbox" in content
+
+
+def test_copy_dir_interactive_diff_prefers_utf8_decoding(tmp_path):
+    src_dir = tmp_path / "src"
+    dest_dir = tmp_path / "dest"
+    src_dir.mkdir()
+    dest_dir.mkdir()
+    (src_dir / "greeting.txt").write_text("I like crêpes\n", encoding="utf-8")
+    (dest_dir / "greeting.txt").write_text("I like café\n", encoding="utf-8")
+
+    captured = {}
+
+    def fake_query_interactive(
+        src_fn, dest_fn, src_content, dest_content, simulate, out_=sys.stdout
+    ):
+        captured["src_fn"] = src_fn
+        captured["dest_fn"] = dest_fn
+        captured["src_content"] = src_content
+        captured["dest_content"] = dest_content
+        return False
+
+    with patch(
+        "gearbox.utils.copydir.query_interactive", side_effect=fake_query_interactive
+    ):
+        copy_dir(
+            str(src_dir),
+            str(dest_dir),
+            vars={},
+            verbosity=0,
+            interactive=True,
+        )
+
+    assert captured["src_fn"] == str(src_dir / "greeting.txt")
+    assert captured["dest_fn"] == str(dest_dir / "greeting.txt")
+    assert captured["src_content"] == "I like crêpes\n"
+    assert captured["dest_content"] == "I like café\n"
 
 
 def test_loads_local_plugins_metadata_and_calls_project_package_loader():

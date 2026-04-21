@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import argparse
 import importlib.metadata
 import inspect
@@ -16,7 +14,7 @@ from .utils.plugins import find_local_distribution
 log = logging.getLogger("gearbox")
 
 
-class GearBox(object):
+class GearBox:
     NAME = os.path.splitext(os.path.basename(sys.argv[0]))[0]
     LOG_DATE_FORMAT = "%H:%M:%S"
     LOG_GEARBOX_FORMAT = (
@@ -95,10 +93,7 @@ class GearBox(object):
     def _configure_logging(self):
         if self.options.debug:
             warnings.simplefilter("default")
-            try:
-                logging.captureWarnings(True)
-            except AttributeError:
-                pass
+            logging.captureWarnings(True)
 
         root_logger = logging.getLogger("")
         root_logger.setLevel(logging.INFO)
@@ -169,9 +164,12 @@ class GearBox(object):
 
         cmd_factory, cmd_name, sub_argv = subcommand
         kwargs = {}
-        if (
-            "cmd_name" in self._getargspec(cmd_factory)[0]
-        ):  # Check to see if 'cmd_name' is in cmd_factory's args
+        try:
+            cmd_signature = inspect.signature(cmd_factory)
+            supports_cmd_name = "cmd_name" in cmd_signature.parameters
+        except (TypeError, ValueError):
+            supports_cmd_name = False
+        if supports_cmd_name:
             kwargs["cmd_name"] = cmd_name
         cmd = cmd_factory(self, self.options, **kwargs)
 
@@ -281,41 +279,6 @@ class GearBox(object):
     @staticmethod
     def _normalize_dist_name(name):
         return re.sub(r"[-_.]+", "-", name).lower()
-
-    def _getargspec(self, func):
-        if not hasattr(inspect, "signature"):
-            return inspect.getargspec(func.__init__)
-        else:  # pragma: no cover
-            sig = inspect.signature(func)
-            args = [
-                p.name
-                for p in sig.parameters.values()
-                if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
-            ]
-            varargs = [
-                p.name
-                for p in sig.parameters.values()
-                if p.kind == inspect.Parameter.VAR_POSITIONAL
-            ]
-            varargs = varargs[0] if varargs else None
-            varkw = [
-                p.name
-                for p in sig.parameters.values()
-                if p.kind == inspect.Parameter.VAR_KEYWORD
-            ]
-            varkw = varkw[0] if varkw else None
-            defaults = (
-                tuple(
-                    (
-                        p.default
-                        for p in sig.parameters.values()
-                        if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
-                        and p.default is not p.empty
-                    )
-                )
-                or None
-            )
-            return args, varargs, varkw, defaults
 
 
 def main():
