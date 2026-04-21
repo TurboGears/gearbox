@@ -12,6 +12,7 @@ from gearbox.commands.help import HelpAction
 from gearbox.commands.serve import ServeCommand
 from gearbox.commands.setup_app import SetupAppCommand
 from gearbox.main import GearBox, main
+from gearbox.utils.copydir import copy_dir
 from gearbox.utils.plugins import find_local_distribution
 
 
@@ -399,6 +400,42 @@ def test_patch(tmp_path):
 
     content = test_file.read_text()
     assert "Gearbox" in content
+
+
+def test_copy_dir_interactive_diff_prefers_utf8_decoding(tmp_path):
+    src_dir = tmp_path / "src"
+    dest_dir = tmp_path / "dest"
+    src_dir.mkdir()
+    dest_dir.mkdir()
+    (src_dir / "greeting.txt").write_text("I like crêpes\n", encoding="utf-8")
+    (dest_dir / "greeting.txt").write_text("I like café\n", encoding="utf-8")
+
+    captured = {}
+
+    def fake_query_interactive(
+        src_fn, dest_fn, src_content, dest_content, simulate, out_=sys.stdout
+    ):
+        captured["src_fn"] = src_fn
+        captured["dest_fn"] = dest_fn
+        captured["src_content"] = src_content
+        captured["dest_content"] = dest_content
+        return False
+
+    with patch(
+        "gearbox.utils.copydir.query_interactive", side_effect=fake_query_interactive
+    ):
+        copy_dir(
+            str(src_dir),
+            str(dest_dir),
+            vars={},
+            verbosity=0,
+            interactive=True,
+        )
+
+    assert captured["src_fn"] == str(src_dir / "greeting.txt")
+    assert captured["dest_fn"] == str(dest_dir / "greeting.txt")
+    assert captured["src_content"] == "I like crêpes\n"
+    assert captured["dest_content"] == "I like café\n"
 
 
 def test_loads_local_plugins_metadata_and_calls_project_package_loader():

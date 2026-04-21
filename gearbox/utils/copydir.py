@@ -116,8 +116,8 @@ def copy_dir(
                 if not query_interactive(
                     full,
                     dest_full,
-                    content.decode("latin-1"),
-                    old_content.decode("latin-1"),
+                    content.decode(sys.getfilesystemencoding()),
+                    old_content.decode(sys.getfilesystemencoding()),
                     simulate=simulate,
                     out_=out_,
                 ):
