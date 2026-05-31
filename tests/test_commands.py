@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from gearbox.command import Command
 from gearbox.commandmanager import CommandManager
 from gearbox.commands.help import HelpAction
 from gearbox.commands.serve import ServeCommand
@@ -53,6 +54,34 @@ def _write_egg_info(base_dir, name, version, entry_points_text="", top_level_tex
     if top_level_text:
         (egg_info_dir / "top_level.txt").write_text(top_level_text)
     return egg_info_dir
+
+
+def _write_project_with_command(tmp_path):
+    project_root = tmp_path / "project"
+    nested_cwd = project_root / "app" / "pkg"
+    nested_cwd.mkdir(parents=True)
+    (project_root / "fakecommands.py").write_text(
+        "from gearbox.command import Command\n\n"
+        "class ProjectCommand(Command):\n"
+        "    '''Current directory command help.'''\n\n"
+        "    def get_parser(self, prog_name):\n"
+        "        parser = super().get_parser(prog_name)\n"
+        "        parser.add_argument('--project-option', help='current directory option')\n"
+        "        return parser\n"
+    )
+    _write_dist_info(
+        project_root,
+        "sampleproject",
+        "0.1.0",
+        "[gearbox.plugins]\nlocal-tools = localtools\n",
+    )
+    _write_dist_info(
+        project_root,
+        "localtools",
+        "1.0.0",
+        "[gearbox.project_commands]\nprojectcheck = fakecommands:ProjectCommand\n",
+    )
+    return project_root, nested_cwd
 
 
 # --- Test for ServeCommand using external wsgiref ---
@@ -436,6 +465,74 @@ def test_copy_dir_interactive_diff_prefers_utf8_decoding(tmp_path):
     assert captured["dest_fn"] == str(dest_dir / "greeting.txt")
     assert captured["src_content"] == "I like crêpes\n"
     assert captured["dest_content"] == "I like café\n"
+
+
+def test_internal_command_help_flag_shows_command_help(capsys):
+    result = GearBox().run(["serve", "--help"])
+
+    output = capsys.readouterr().out
+    assert result == 0
+    assert "usage:" in output
+    assert "serve [-c CONFIG_FILE]" in output
+    assert "Serves a web application" in output
+    assert "--config" in output
+    assert "TurboGears2 Gearbox toolset" not in output
+    assert "\nCommands:" not in output
+
+
+def test_global_extension_command_help_flag_shows_command_help(monkeypatch, capsys):
+    class ExtensionCommand(Command):
+        """Global extension command help."""
+
+        def get_parser(self, prog_name):
+            parser = super().get_parser(prog_name)
+            parser.add_argument("--extension-option", help="global extension option")
+            return parser
+
+    extension_ep = MagicMock()
+    extension_ep.name = "extensioncheck"
+    extension_ep.load.return_value = ExtensionCommand
+
+    class EntryPointSet:
+        def select(self, group):
+            if group == "gearbox.commands":
+                return [extension_ep]
+            return []
+
+    monkeypatch.setattr(
+        "gearbox.commandmanager.importlib.metadata.entry_points",
+        lambda: EntryPointSet(),
+    )
+
+    result = GearBox().run(["extensioncheck", "--help"])
+
+    output = capsys.readouterr().out
+    assert result == 0
+    assert "usage:" in output
+    assert "extensioncheck [--extension-option" in output
+    assert "Global extension command help." in output
+    assert "--extension-option" in output
+    assert "TurboGears2 Gearbox toolset" not in output
+    assert "\nCommands:" not in output
+
+
+def test_current_directory_command_help_flag_shows_command_help(
+    tmp_path, monkeypatch, capsys
+):
+    project_root, nested_cwd = _write_project_with_command(tmp_path)
+    monkeypatch.chdir(nested_cwd)
+    monkeypatch.syspath_prepend(str(project_root))
+
+    result = GearBox().run(["projectcheck", "--help"])
+
+    output = capsys.readouterr().out
+    assert result == 0
+    assert "usage:" in output
+    assert "projectcheck [--project-option" in output
+    assert "Current directory command help." in output
+    assert "--project-option" in output
+    assert "TurboGears2 Gearbox toolset" not in output
+    assert "\nCommands:" not in output
 
 
 def test_loads_local_plugins_metadata_and_calls_project_package_loader():

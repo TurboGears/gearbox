@@ -69,9 +69,8 @@ class GearBox:
         parser.add_argument(
             "-h",
             "--help",
-            action=HelpAction,
-            nargs=0,
-            default=self,  # tricky
+            action="store_true",
+            dest="help",
             help="Show this help message and exit.",
         )
 
@@ -136,6 +135,13 @@ class GearBox:
                 sys.path.insert(0, curdir)
 
             self._load_commands_for_current_dir()
+
+            if self.options.help:
+                if remainder:
+                    return self._run_subcommand(["help"] + remainder)
+
+                action = HelpAction(None, None, default=self)
+                action(self.parser, self.options, None, None)
 
         except Exception as err:
             if hasattr(self, "options"):
