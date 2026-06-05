@@ -420,7 +420,7 @@ def test_patch(tmp_path):
     test_file.write_text("Hello World\n")
 
     with patch(
-        "gearbox.commands.patch.PatchCommand._walk_flat",
+        "gearbox.commands.patch.glob.glob",
         return_value=[str(test_file)],
     ), patch.object(
         sys, "argv", ["gearbox", "patch", str(test_file), "World", "-r", "Gearbox"]
@@ -429,6 +429,44 @@ def test_patch(tmp_path):
 
     content = test_file.read_text()
     assert "Gearbox" in content
+
+
+def test_patch_accepts_relative_file_path(tmp_path, monkeypatch):
+    test_file = tmp_path / "root.py"
+    test_file.write_text("redirect('/demo')\n")
+    monkeypatch.chdir(tmp_path)
+
+    with patch.object(
+        sys,
+        "argv",
+        [
+            "gearbox",
+            "patch",
+            "root.py",
+            "redirect('/demo')",
+            "-r",
+            "return 'Hello World'",
+        ],
+    ):
+        main()
+
+    assert test_file.read_text() == "return 'Hello World'\n"
+
+
+def test_patch_accepts_relative_nested_file_path(tmp_path, monkeypatch):
+    test_file = tmp_path / "controllers" / "root.py"
+    test_file.parent.mkdir()
+    test_file.write_text("    demo = DemoController()\n")
+    monkeypatch.chdir(tmp_path)
+
+    with patch.object(
+        sys,
+        "argv",
+        ["gearbox", "patch", "controllers/root.py", "DemoController", "-d"],
+    ):
+        main()
+
+    assert test_file.read_text() == ""
 
 
 def test_copy_dir_interactive_diff_prefers_utf8_decoding(tmp_path):

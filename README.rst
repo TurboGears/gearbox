@@ -185,11 +185,11 @@ Examples:
 
 Replace all `xi:include` occurrences with `py:extends` in all HTML template files recursively::
 
-    $ gearbox patch -R '*.html' xi:include -r py:extends
+    $ gearbox patch '**/*.html' xi:include -r py:extends
 
 Update the copyright year in documentation using regular expressions and Python::
 
-    $ gearbox patch -R '*.rst' -x 'Copyright(\s*)(\d+)' -e -r '"Copyright\\g<1>"+__import__("datetime").datetime.utcnow().strftime("%Y")'
+    $ gearbox patch '**/*.rst' -x 'Copyright(\s*)(\d+)' -e -r '"Copyright\\g<1>"+__import__("datetime").datetime.utcnow().strftime("%Y")'
 
 Refer to ``gearbox help patch`` for available options.
 

@@ -1,4 +1,4 @@
-import fnmatch
+import glob
 import os
 import re
 from argparse import RawDescriptionHelpFormatter
@@ -16,12 +16,12 @@ code in your projects.
 Here are a few examples, this will replace all xi:include occurrences
 with py:extends in all the template files recursively:
 
-    $ gearbox patch -R '*.html' xi:include -r py:extends
+    $ gearbox patch '**/*.xhtml' xi:include -r py:extends
 
 It is also possible to rely on regex and python for more complex
 replacements, like updating the Copyright year in your documentation:
 
-    $ gearbox patch -R '*.rst' -x 'Copyright(\s*)(\d+)' -e -r '"Copyright\\g<1>"+__import__("datetime").datetime.utcnow().strftime("%Y")'
+    $ gearbox patch '**/*.rst' -x 'Copyright(\s*)(\d+)' -e -r '"Copyright\\g<1>"+__import__("datetime").datetime.utcnow().strftime("%Y")'
 
 Works on a line by line basis, so it is not possible to match text
 across multiple lines.
@@ -66,14 +66,6 @@ across multiple lines.
         )
 
         parser.add_argument(
-            "-R",
-            "--recursive",
-            dest="recursive",
-            action="store_true",
-            help="Look for files matching pattern in subfolders too.",
-        )
-
-        parser.add_argument(
             "-e",
             "--eval",
             dest="eval",
@@ -84,10 +76,6 @@ across multiple lines.
         return parser
 
     def take_action(self, opts):
-        walk = self._walk_flat
-        if opts.recursive:
-            walk = self._walk_recursive
-
         match = self._match_plain
         if opts.regex:
             match = self._match_regex
@@ -97,9 +85,8 @@ across multiple lines.
             replace = self._replace_regex
 
         matches = []
-        for filepath in walk():
-            if fnmatch.fnmatch(filepath, opts.pattern):
-                matches.append(filepath)
+        for filepath in glob.glob(opts.pattern, recursive=True):
+            matches.append(filepath)
 
         print("%s files matching" % len(matches))
         for filepath in matches:
@@ -134,16 +121,6 @@ across multiple lines.
             if matches:
                 with open(filepath, "w") as f:
                     f.writelines(lines)
-
-    def _walk_recursive(self):
-        for root, dirnames, filenames in os.walk(os.getcwd()):
-            for filename in filenames:
-                yield os.path.join(root, filename)
-
-    def _walk_flat(self):
-        root = os.getcwd()
-        for filename in os.listdir(root):
-            yield os.path.join(root, filename)
 
     def _replace_regex(self, line, text, replacement):
         return re.sub(text, replacement, line)
