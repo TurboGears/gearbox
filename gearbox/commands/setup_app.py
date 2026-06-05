@@ -81,9 +81,7 @@ class SetupAppCommand(Command):
         modules = self._find_websetup_modules(dist)
 
         if not modules:
-            print(
-                "Unable to find any websetup modules from distribution metadata."
-            )
+            print("Unable to find any websetup modules from distribution metadata.")
             print("Try reinstalling the application and rerun setup-app.")
             return
 

@@ -114,10 +114,11 @@ use = egg:dummy_app""")
             show_status=False,
         )
         server_instance = MagicMock()  # Serve instance with serve_forever auto-mocked.
-        with patch(
-            "wsgiref.simple_server.make_server", return_value=server_instance
-        ) as mock_make_server, patch.object(
-            ServeCommand, "loadapp", return_value=MagicMock()
+        with (
+            patch(
+                "wsgiref.simple_server.make_server", return_value=server_instance
+            ) as mock_make_server,
+            patch.object(ServeCommand, "loadapp", return_value=MagicMock()),
         ):
             cmd = ServeCommand(MagicMock(), argparse.Namespace(verbose_level=0))
             cmd.take_action(opts)
@@ -173,23 +174,25 @@ def test_setup_app(tmp_path):
 
     fake_setup_app = MagicMock(return_value=0)
 
-    with patch.object(
-        sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]
-    ), patch(
-        "gearbox.commands.setup_app.appconfig",
-        return_value=MagicMock(
-            context=MagicMock(
-                entry_point_name="main",
-                protocol="app",
-                distribution=MagicMock(
-                    files=[pathlib.PurePosixPath("fakemodule/websetup.py")]
-                ),
-            )
+    with (
+        patch.object(sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]),
+        patch(
+            "gearbox.commands.setup_app.appconfig",
+            return_value=MagicMock(
+                context=MagicMock(
+                    entry_point_name="main",
+                    protocol="app",
+                    distribution=MagicMock(
+                        files=[pathlib.PurePosixPath("fakemodule/websetup.py")]
+                    ),
+                )
+            ),
         ),
-    ), patch.object(
-        SetupAppCommand,
-        "_import_module",
-        return_value=MagicMock(setup_app=fake_setup_app),
+        patch.object(
+            SetupAppCommand,
+            "_import_module",
+            return_value=MagicMock(setup_app=fake_setup_app),
+        ),
     ):
         main()
 
@@ -206,21 +209,23 @@ def test_setup_app_uses_websetup_file_from_dist_files(tmp_path):
     fake_dist = MagicMock()
     fake_dist.files = [pathlib.PurePosixPath("fakemodule/websetup.py")]
 
-    with patch.object(
-        sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]
-    ), patch(
-        "gearbox.commands.setup_app.appconfig",
-        return_value=MagicMock(
-            context=MagicMock(
-                entry_point_name="main",
-                protocol="app",
-                distribution=fake_dist,
-            )
+    with (
+        patch.object(sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]),
+        patch(
+            "gearbox.commands.setup_app.appconfig",
+            return_value=MagicMock(
+                context=MagicMock(
+                    entry_point_name="main",
+                    protocol="app",
+                    distribution=fake_dist,
+                )
+            ),
         ),
-    ), patch.object(
-        SetupAppCommand,
-        "_import_module",
-        return_value=MagicMock(setup_app=fake_setup_app),
+        patch.object(
+            SetupAppCommand,
+            "_import_module",
+            return_value=MagicMock(setup_app=fake_setup_app),
+        ),
     ):
         main()
 
@@ -237,22 +242,24 @@ def test_setup_app_uses_websetup_package_from_dist_files(tmp_path):
     fake_dist = MagicMock()
     fake_dist.files = [pathlib.PurePosixPath("fakemodule/websetup/__init__.py")]
 
-    with patch.object(
-        sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]
-    ), patch(
-        "gearbox.commands.setup_app.appconfig",
-        return_value=MagicMock(
-            context=MagicMock(
-                entry_point_name="main",
-                protocol="app",
-                distribution=fake_dist,
-            )
+    with (
+        patch.object(sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]),
+        patch(
+            "gearbox.commands.setup_app.appconfig",
+            return_value=MagicMock(
+                context=MagicMock(
+                    entry_point_name="main",
+                    protocol="app",
+                    distribution=fake_dist,
+                )
+            ),
         ),
-    ), patch.object(
-        SetupAppCommand,
-        "_import_module",
-        return_value=MagicMock(setup_app=fake_setup_app),
-    ) as import_module:
+        patch.object(
+            SetupAppCommand,
+            "_import_module",
+            return_value=MagicMock(setup_app=fake_setup_app),
+        ) as import_module,
+    ):
         main()
 
     import_module.assert_called_once_with("fakemodule.websetup")
@@ -270,22 +277,24 @@ def test_setup_app_falls_back_to_top_level_metadata(tmp_path):
     fake_dist.files = None
     fake_dist.read_text.return_value = "fakemodule\n"
 
-    with patch.object(
-        sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]
-    ), patch(
-        "gearbox.commands.setup_app.appconfig",
-        return_value=MagicMock(
-            context=MagicMock(
-                entry_point_name="main",
-                protocol="app",
-                distribution=fake_dist,
-            )
+    with (
+        patch.object(sys, "argv", ["gearbox", "setup-app", "-c", str(config_file)]),
+        patch(
+            "gearbox.commands.setup_app.appconfig",
+            return_value=MagicMock(
+                context=MagicMock(
+                    entry_point_name="main",
+                    protocol="app",
+                    distribution=fake_dist,
+                )
+            ),
         ),
-    ), patch.object(
-        SetupAppCommand,
-        "_import_module",
-        return_value=MagicMock(setup_app=fake_setup_app),
-    ) as import_module:
+        patch.object(
+            SetupAppCommand,
+            "_import_module",
+            return_value=MagicMock(setup_app=fake_setup_app),
+        ) as import_module,
+    ):
         main()
 
     import_module.assert_called_once_with("fakemodule.websetup")
@@ -419,11 +428,14 @@ def test_patch(tmp_path):
     test_file = tmp_path / "test.txt"
     test_file.write_text("Hello World\n")
 
-    with patch(
-        "gearbox.commands.patch.glob.glob",
-        return_value=[str(test_file)],
-    ), patch.object(
-        sys, "argv", ["gearbox", "patch", str(test_file), "World", "-r", "Gearbox"]
+    with (
+        patch(
+            "gearbox.commands.patch.glob.glob",
+            return_value=[str(test_file)],
+        ),
+        patch.object(
+            sys, "argv", ["gearbox", "patch", str(test_file), "World", "-r", "Gearbox"]
+        ),
     ):
         main()
 
@@ -580,9 +592,7 @@ def test_loads_local_plugins_metadata_and_calls_project_package_loader():
     dist = MagicMock()
     dist.entry_points = [plugin_ep]
 
-    with patch(
-        "gearbox.main.find_local_distribution", return_value=(dist, ".")
-    ):
+    with patch("gearbox.main.find_local_distribution", return_value=(dist, ".")):
         with patch.object(app, "load_commands_for_package") as load_package:
             app._load_commands_for_current_dir()
 
@@ -604,11 +614,12 @@ def test_loads_tg_devtools_project_commands_from_project_plugins():
     devtools_dist = MagicMock()
     devtools_dist.entry_points = [migrate_ep, tgshell_ep]
 
-    with patch(
-        "gearbox.main.find_local_distribution",
-        return_value=(project_dist, "."),
-    ), patch(
-        "importlib.metadata.distribution", return_value=devtools_dist
+    with (
+        patch(
+            "gearbox.main.find_local_distribution",
+            return_value=(project_dist, "."),
+        ),
+        patch("importlib.metadata.distribution", return_value=devtools_dist),
     ):
         app._load_commands_for_current_dir()
 
@@ -643,7 +654,9 @@ def test_command_manager_loads_tgext_pluggable_style_global_commands():
                 return plugin_eps
             return []
 
-    with patch("gearbox.commandmanager.importlib.metadata.entry_points") as entry_points:
+    with patch(
+        "gearbox.commandmanager.importlib.metadata.entry_points"
+    ) as entry_points:
         entry_points.return_value = EntryPointSet()
         cm = CommandManager(namespace="gearbox.commands")
 
@@ -655,10 +668,7 @@ def test_loads_tg_devtools_commands_from_local_dist_info(tmp_path, monkeypatch):
     project_root = tmp_path / "project"
     nested_cwd = project_root / "app" / "pkg"
     nested_cwd.mkdir(parents=True)
-    project_entry_points = (
-        "[gearbox.plugins]\n"
-        "turbogears-devtools = tg.devtools\n"
-    )
+    project_entry_points = "[gearbox.plugins]\nturbogears-devtools = tg.devtools\n"
     devtools_entry_points = (
         "[gearbox.project_commands]\n"
         "local_migrate_distinfo = devtools.gearbox.alembic_migrate:MigrateCommand\n"
@@ -703,10 +713,7 @@ def test_loads_tg_devtools_commands_from_local_egg_info(tmp_path, monkeypatch):
     project_root = tmp_path / "project"
     nested_cwd = project_root / "app" / "pkg"
     nested_cwd.mkdir(parents=True)
-    project_entry_points = (
-        "[gearbox.plugins]\n"
-        "turbogears-devtools = tg.devtools\n"
-    )
+    project_entry_points = "[gearbox.plugins]\nturbogears-devtools = tg.devtools\n"
     devtools_entry_points = (
         "[gearbox.project_commands]\n"
         "local_migrate_egginfo = devtools.gearbox.alembic_migrate:MigrateCommand\n"
@@ -738,13 +745,17 @@ def test_run_continues_when_project_distribution_is_missing():
     project_dist = MagicMock()
     project_dist.entry_points = [plugin_ep]
 
-    with patch(
-        "gearbox.main.find_local_distribution",
-        return_value=(project_dist, "."),
-    ), patch(
-        "importlib.metadata.distribution",
-        side_effect=importlib.metadata.PackageNotFoundError("tg.devtools"),
-    ), patch.object(app, "_run_subcommand", return_value=42) as run_subcommand:
+    with (
+        patch(
+            "gearbox.main.find_local_distribution",
+            return_value=(project_dist, "."),
+        ),
+        patch(
+            "importlib.metadata.distribution",
+            side_effect=importlib.metadata.PackageNotFoundError("tg.devtools"),
+        ),
+        patch.object(app, "_run_subcommand", return_value=42) as run_subcommand,
+    ):
         result = app.run(["help"])
 
     assert result == 42
@@ -783,19 +794,20 @@ def test_find_local_distribution_continues_after_unreadable_directory(tmp_path):
 def test_load_commands_for_package_logs_context_when_distribution_missing(caplog):
     app = GearBox()
 
-    with patch(
-        "importlib.metadata.packages_distributions",
-        return_value={"tg": ["TurboGears2.devtools"]},
-    ), patch(
-        "importlib.metadata.distribution",
-        side_effect=importlib.metadata.PackageNotFoundError("missing"),
+    with (
+        patch(
+            "importlib.metadata.packages_distributions",
+            return_value={"tg": ["TurboGears2.devtools"]},
+        ),
+        patch(
+            "importlib.metadata.distribution",
+            side_effect=importlib.metadata.PackageNotFoundError("missing"),
+        ),
     ):
         with caplog.at_level("ERROR", logger="gearbox"):
             app.load_commands_for_package("tg.devtools")
 
-    assert (
-        "Failed to load project commands for package 'tg.devtools'" in caplog.text
-    )
+    assert "Failed to load project commands for package 'tg.devtools'" in caplog.text
     assert "Have you installed your project?" in caplog.text
 
 

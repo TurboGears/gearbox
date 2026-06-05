@@ -1,5 +1,4 @@
 import glob
-import os
 import re
 from argparse import RawDescriptionHelpFormatter
 
