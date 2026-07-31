@@ -30,8 +30,7 @@ class Command:
         raise NotImplementedError
 
     def run(self, parsed_args):
-        self.take_action(parsed_args)
-        return 0
+        return self.take_action(parsed_args) or 0
 
 
 class TemplateCommand(Command):

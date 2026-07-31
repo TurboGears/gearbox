@@ -88,7 +88,7 @@ templates/template.html.template scaffolds of the current project.
 
             if not template_filename or not os.path.exists(template_filename):
                 print("Template %s Not Found!" % (template))
-                continue
+                return 1
 
             print("Using %s for %s" % (template_filename, opts.target))
             template_with_ext, __ = os.path.splitext(template_filename)
@@ -128,7 +128,7 @@ templates/template.html.template scaffolds of the current project.
                     )
                 except NameError as e:
                     print("!! Error while processing template: %s" % e)
-                    continue
+                    return 1
 
                 with open(output_path, "w") as of:
                     of.write(text)

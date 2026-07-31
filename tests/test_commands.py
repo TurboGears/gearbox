@@ -423,6 +423,45 @@ def test_scaffold_subdir_creates_package_init_by_default(tmp_path):
     assert (project_dir / "admin" / "__init__.py").is_file()
 
 
+@pytest.mark.parametrize("template", [None, "{{missing_name}}"])
+def test_scaffold_failure_returns_status_1(tmp_path, template):
+    lookup_dir = tmp_path / "scaffolds"
+    lookup_dir.mkdir()
+    if template is not None:
+        (lookup_dir / "broken.template").write_text(template)
+
+    result = GearBox().run(
+        ["scaffold", "broken", "Target", "-l", str(lookup_dir)]
+    )
+
+    assert result == 1
+
+
+@pytest.mark.parametrize(
+    ("action_result", "expected_status"), [(None, 0), (1, 1), (3, 3)]
+)
+def test_command_action_result_is_gearbox_exit_status(action_result, expected_status):
+    class StatusCommand(Command):
+        def take_action(self, parsed_args):
+            return action_result
+
+    app = GearBox()
+    app.command_manager.add_command("status", StatusCommand)
+
+    assert app.run(["status"]) == expected_status
+
+
+def test_command_exception_returns_status_4():
+    class FailingCommand(Command):
+        def take_action(self, parsed_args):
+            raise RuntimeError("unexpected")
+
+    app = GearBox()
+    app.command_manager.add_command("failing", FailingCommand)
+
+    assert app.run(["failing"]) == 4
+
+
 # --- Test for patch command ---
 def test_patch(tmp_path):
     test_file = tmp_path / "test.txt"
