@@ -63,6 +63,21 @@ templates/template.html.template scaffolds of the current project.
             "packages, but plain directories.",
         )
 
+        parser.add_argument(
+            "-f",
+            "--force",
+            dest="force",
+            action="store_true",
+            help="Force overwrite of existing files.",
+        )
+
+        parser.add_argument(
+            "--dry-run",
+            dest="dry_run",
+            action="store_true",
+            help="Simulate the scaffold operation without writing any files.",
+        )
+
         return parser
 
     def take_action(self, opts):
@@ -87,10 +102,10 @@ templates/template.html.template scaffolds of the current project.
                         )
 
             if not template_filename or not os.path.exists(template_filename):
-                print("Template %s Not Found!" % (template))
+                print(f"Template {template} Not Found!")
                 return 1
 
-            print("Using %s for %s" % (template_filename, opts.target))
+            print(f"Using {template_filename} for {opts.target}")
             template_with_ext, __ = os.path.splitext(template_filename)
             __, output_ext = os.path.splitext(template_with_ext)
 
@@ -110,7 +125,16 @@ templates/template.html.template scaffolds of the current project.
                             pif.write("# -*- coding: utf-8 -*-\n")
 
             output_path = os.path.join(output_dir, opts.target) + output_ext
-            print("Creating %s..." % output_path)
+
+            if os.path.exists(output_path) and not opts.force:
+                print(f"File already exists: {output_path}")
+                return 1
+
+            if opts.dry_run:
+                print(f"Would create {output_path}...")
+                continue
+
+            print(f"Creating {output_path}...")
 
             with open(template_filename, "r") as tf:
                 try:
@@ -127,7 +151,7 @@ templates/template.html.template scaffolds of the current project.
                         },
                     )
                 except NameError as e:
-                    print("!! Error while processing template: %s" % e)
+                    print(f"!! Error while processing template: {e}")
                     return 1
 
                 with open(output_path, "w") as of:

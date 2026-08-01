@@ -430,11 +430,127 @@ def test_scaffold_failure_returns_status_1(tmp_path, template):
     if template is not None:
         (lookup_dir / "broken.template").write_text(template)
 
+    result = GearBox().run(["scaffold", "broken", "Target", "-l", str(lookup_dir)])
+
+    assert result == 1
+
+
+def test_scaffold_refuses_to_overwrite_existing_file(tmp_path, capsys):
+    lookup_dir = tmp_path / "scaffolds"
+    lookup_dir.mkdir()
+    template_file = lookup_dir / "model.template"
+    template_file.write_text("class {{target.capitalize()}}:\n    pass\n")
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    existing_file = project_dir / "TestModel"
+    existing_file.write_text("existing content\n")
+
     result = GearBox().run(
-        ["scaffold", "broken", "Target", "-l", str(lookup_dir)]
+        [
+            "scaffold",
+            "model",
+            "TestModel",
+            "-l",
+            str(lookup_dir),
+            "-p",
+            str(project_dir),
+        ]
     )
 
     assert result == 1
+    captured = capsys.readouterr()
+    assert "File already exists:" in captured.out
+    assert str(existing_file) in captured.out
+    assert existing_file.read_text() == "existing content\n"
+
+
+def test_scaffold_overwrites_with_force_flag(tmp_path):
+    lookup_dir = tmp_path / "scaffolds"
+    lookup_dir.mkdir()
+    template_file = lookup_dir / "model.template"
+    template_file.write_text("class {{target.capitalize()}}:\n    pass\n")
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    existing_file = project_dir / "TestModel"
+    existing_file.write_text("existing content\n")
+
+    result = GearBox().run(
+        [
+            "scaffold",
+            "model",
+            "TestModel",
+            "-l",
+            str(lookup_dir),
+            "-p",
+            str(project_dir),
+            "--force",
+        ]
+    )
+
+    assert result == 0
+    content = existing_file.read_text()
+    assert "class Testmodel" in content
+
+
+def test_scaffold_dry_run_does_not_create_file(tmp_path, capsys):
+    lookup_dir = tmp_path / "scaffolds"
+    lookup_dir.mkdir()
+    template_file = lookup_dir / "model.template"
+    template_file.write_text("class {{target.capitalize()}}:\n    pass\n")
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    result = GearBox().run(
+        [
+            "scaffold",
+            "model",
+            "TestModel",
+            "-l",
+            str(lookup_dir),
+            "-p",
+            str(project_dir),
+            "--dry-run",
+        ]
+    )
+
+    assert result == 0
+    output_file = project_dir / "TestModel"
+    assert not output_file.exists()
+    captured = capsys.readouterr()
+    assert "Would create" in captured.out
+
+
+def test_scaffold_dry_run_with_existing_file_returns_error(tmp_path, capsys):
+    lookup_dir = tmp_path / "scaffolds"
+    lookup_dir.mkdir()
+    template_file = lookup_dir / "model.template"
+    template_file.write_text("class {{target.capitalize()}}\n    pass\n")
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    existing_file = project_dir / "TestModel"
+    existing_file.write_text("existing content\n")
+
+    result = GearBox().run(
+        [
+            "scaffold",
+            "model",
+            "TestModel",
+            "-l",
+            str(lookup_dir),
+            "-p",
+            str(project_dir),
+            "--dry-run",
+        ]
+    )
+
+    assert result == 1
+    captured = capsys.readouterr()
+    assert "File already exists:" in captured.out
+    assert str(existing_file) in captured.out
+    assert existing_file.read_text() == "existing content\n"
 
 
 @pytest.mark.parametrize(
