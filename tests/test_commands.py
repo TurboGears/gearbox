@@ -362,6 +362,38 @@ def test_scaffold_derives_output_extension_from_template_name(tmp_path):
     assert "class Demo" in output_file.read_text()
 
 
+def test_scaffold_uses_template_output_stem(tmp_path):
+    lookup_dir = tmp_path / "scaffolds"
+    lookup_dir.mkdir()
+    template_file = lookup_dir / "controller_test.py.template"
+    template_file.write_text(
+        "{{# gearbox: output-stem=test_{target} }}\n"
+        "class Test{{target.capitalize()}}:\n    pass\n"
+    )
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    with patch.object(
+        sys,
+        "argv",
+        [
+            "gearbox",
+            "scaffold",
+            "controller_test",
+            "articles",
+            "-l",
+            str(lookup_dir),
+            "-p",
+            str(project_dir),
+        ],
+    ):
+        main()
+
+    output_file = project_dir / "test_articles.py"
+    assert output_file.is_file()
+    assert output_file.read_text() == "\nclass TestArticles:\n    pass\n"
+
+
 def test_scaffold_no_package_prevents_subdir_init_file(tmp_path):
     lookup_dir = tmp_path / "scaffolds"
     lookup_dir.mkdir()

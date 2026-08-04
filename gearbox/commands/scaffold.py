@@ -1,8 +1,11 @@
 import os
+import re
 from argparse import RawDescriptionHelpFormatter
 
 from gearbox.command import Command
 from gearbox.template import GearBoxTemplate
+
+_OUTPUT_STEM = re.compile(r"^\{\{# gearbox: output-stem=([A-Za-z0-9_{}-]+) \}\}$")
 
 
 class ScaffoldCommand(Command):
@@ -18,6 +21,13 @@ and template using something like:
 which will create a SomethingModel, SomethingController and something.html
 using model/model.py.template, controllers/controller.py.template and
 templates/template.html.template scaffolds of the current project.
+
+A template can set its output filename stem with a first-line Tempita comment:
+
+    {{# gearbox: output-stem=test_{target} }}
+
+The target replaces ``{target}``; the template filename still determines the
+extension.
 """
 
     def get_parser(self, prog_name):
@@ -108,6 +118,8 @@ templates/template.html.template scaffolds of the current project.
             print(f"Using {template_filename} for {opts.target}")
             template_with_ext, __ = os.path.splitext(template_filename)
             __, output_ext = os.path.splitext(template_with_ext)
+            with open(template_filename, "r") as tf:
+                template_text = tf.read()
 
             output_dir = opts.path
             if not output_dir:
@@ -124,7 +136,13 @@ templates/template.html.template scaffolds of the current project.
                         with open(package_init, "w") as pif:
                             pif.write("# -*- coding: utf-8 -*-\n")
 
-            output_path = os.path.join(output_dir, opts.target) + output_ext
+            first_line = template_text.split("\n", 1)[0]
+            match = _OUTPUT_STEM.match(first_line)
+            if match:
+                output_stem = match.group(1).replace("{target}", opts.target)
+            else:
+                output_stem = opts.target
+            output_path = os.path.join(output_dir, output_stem) + output_ext
 
             if os.path.exists(output_path) and not opts.force:
                 print(f"File already exists: {output_path}")
@@ -136,26 +154,25 @@ templates/template.html.template scaffolds of the current project.
 
             print(f"Creating {output_path}...")
 
-            with open(template_filename, "r") as tf:
-                try:
-                    subdir_as_package = (
-                        opts.subdir.replace(os.sep, ".") if opts.subdir else ""
-                    )
-                    text = GearBoxTemplate().template_renderer(
-                        tf.read(),
-                        {
-                            "target": opts.target,
-                            "subdir": opts.subdir,
-                            "subpackage": subdir_as_package,
-                            "dotted_subpackage": "." + subdir_as_package,
-                        },
-                    )
-                except NameError as e:
-                    print(f"!! Error while processing template: {e}")
-                    return 1
+            try:
+                subdir_as_package = (
+                    opts.subdir.replace(os.sep, ".") if opts.subdir else ""
+                )
+                text = GearBoxTemplate().template_renderer(
+                    template_text,
+                    {
+                        "target": opts.target,
+                        "subdir": opts.subdir,
+                        "subpackage": subdir_as_package,
+                        "dotted_subpackage": "." + subdir_as_package,
+                    },
+                )
+            except NameError as e:
+                print(f"!! Error while processing template: {e}")
+                return 1
 
-                with open(output_path, "w") as of:
-                    of.write(text)
+            with open(output_path, "w") as of:
+                of.write(text)
 
     def _lookup(self, template, where):
         template_filename = None
