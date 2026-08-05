@@ -120,7 +120,9 @@ use = egg:dummy_app""")
             ) as mock_make_server,
             patch.object(ServeCommand, "loadapp", return_value=MagicMock()),
         ):
-            cmd = ServeCommand(MagicMock(), argparse.Namespace(verbose_level=0))
+            app = MagicMock()
+            app.options.log_file = None
+            cmd = ServeCommand(app, argparse.Namespace(verbose_level=0))
             cmd.take_action(opts)
             mock_make_server.assert_called_once()
             server_instance.serve_forever.assert_called_once()

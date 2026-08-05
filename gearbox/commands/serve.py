@@ -15,7 +15,6 @@ import os
 import re
 import subprocess
 import sys
-import threading
 import time
 
 import hupper
@@ -272,9 +271,9 @@ class ServeCommand(Command):
             log_fn = None
 
         if self.app.options.log_file:
-            stdout_log = LazyWriter(self.app.options.log_file, "a")
-            sys.stdout = stdout_log
-            sys.stderr = stdout_log
+            log_stream = open(self.app.options.log_file, "a")
+            sys.stdout = log_stream
+            sys.stderr = log_stream
 
         try:
             server = self.loadserver(
@@ -566,46 +565,6 @@ class ServeCommand(Command):
             os.setgid(gid)
         if uid:
             os.setuid(uid)
-
-
-class LazyWriter:
-    """
-    File-like object that opens a file lazily when it is first written
-    to.
-    """
-
-    def __init__(self, filename, mode="w"):
-        self.filename = filename
-        self.fileobj = None
-        self.lock = threading.Lock()
-        self.mode = mode
-
-    def open(self):
-        if self.fileobj is None:
-            with self.lock:
-                self.fileobj = open(self.filename, self.mode)
-        return self.fileobj
-
-    def close(self):
-        fileobj = self.fileobj
-        if fileobj is not None:
-            fileobj.close()
-
-    def __del__(self):
-        self.close()
-
-    def write(self, text):
-        fileobj = self.open()
-        fileobj.write(text)
-        fileobj.flush()
-
-    def writelines(self, text):
-        fileobj = self.open()
-        fileobj.writelines(text)
-        fileobj.flush()
-
-    def flush(self):
-        self.open().flush()
 
 
 def live_pidfile(pidfile):  # pragma: no cover
